@@ -223,9 +223,40 @@ tbody td:first-child {
 
 /* ── Empty / Loading states ── */
 
-.state-message {
-  color: #aaa;
-  font-size: 13px;
-  padding: 24px 0;
-  text-align: center;
+/* ── Edit button ── */
+
+.btn-edit {
+  height: 28px;
+  padding: 0 10px;
+  background: #fff;
+  color: #2471a3;
+  border: 1px solid #aed6f1;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-edit:hover {
+  background: #eaf4fb;
+  border-color: #2471a3;
+}
+
+/* ── Delete button ── */
+
+.btn-delete {
+  height: 28px;
+  padding: 0 10px;
+  background: #fff;
+  color: #c0392b;
+  border: 1px solid #f5c6c6;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-delete:hover {
+  background: #fff0f0;
+  border-color: #c0392b;
 }

@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 const API_BASE = "https://backend-timh.onrender.com";
 
 const COURSES = ["Computer Science", "Mathematics", "Physics", "Engineering", "Business", "Design", "Medicine", "Law"];
-const BRANCHES = ["Software", "Hardware", "AI", "Data Science", "Mechanical", "Civil", "Electrical", "Chemical"];
 
 export default function StudentApp() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState({ name: "", age: "", course: "", branch: "", domain: "", rollno: "", university: "", email: "", phone: "", address: "" });
+  const [form, setForm] = useState({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
   const [activeTab, setActiveTab] = useState("list");
+  const [editingStudent, setEditingStudent] = useState(null);
 
   useEffect(() => {
     fetchStudents();
@@ -33,7 +33,7 @@ export default function StudentApp() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.age || !form.course || !form.branch.trim() || !form.domain.trim() || !form.rollno.trim() || !form.university.trim() || !form.email.trim() || !form.phone.trim() || !form.address.trim()) {
+    if (!form.name.trim() || !form.age || !form.course || !form.rollno.trim() || !form.university.trim() || !form.email.trim() || !form.phone.trim() || !form.address.trim()) {
       setError("All fields are required.");
       return;
     }
@@ -47,7 +47,54 @@ export default function StudentApp() {
       if (!res.ok) throw new Error("Failed to add student");
       const newStudent = await res.json();
       setStudents((prev) => [newStudent, ...prev]);
-      setForm({ name: "", age: "", course: "", branch: "", domain: "", rollno: "", university: "", email: "", phone: "", address: "" });
+      setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
+      setActiveTab("list");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  
+  const handleDelete = async (id) => {
+    setError(null);
+    if (!id) { setError("Invalid student ID."); return; }
+    console.log("Deleting student with _id:", id);
+    try {
+      const res = await fetch(`${API_BASE}/students/${id}`, { method: "DELETE" });
+      const body = await res.json().catch(() => ({}));
+      console.log("Delete response:", res.status, body);
+      if (!res.ok) {
+        throw new Error((body.error || "Failed to delete student") + " (status " + res.status + ")");
+      }
+      setStudents((prev) => prev.filter((s) => s._id !== id));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  
+  const handleEdit = (student) => {
+    setEditingStudent(student);
+    setForm({ name: student.name, age: student.age, course: student.course, rollno: student.rollno, university: student.university, email: student.email, phone: student.phone, address: student.address });
+    setActiveTab("add");
+    setError(null);
+  };
+
+  const handleUpdate = async () => {
+    if (!form.name.trim() || !form.age || !form.course || !form.rollno.trim() || !form.university.trim() || !form.email.trim() || !form.phone.trim() || !form.address.trim()) {
+      setError("All fields are required.");
+      return;
+    }
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/students/${editingStudent._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, age: Number(form.age) }),
+      });
+      if (!res.ok) throw new Error("Failed to update student");
+      const updatedStudent = await res.json();
+      setStudents((prev) => prev.map((s) => s._id === updatedStudent._id ? updatedStudent : s));
+      setEditingStudent(null);
+      setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
       setActiveTab("list");
     } catch (err) {
       setError(err.message);
@@ -63,7 +110,7 @@ export default function StudentApp() {
       <div className="tabs">
         <button onClick={() => setActiveTab("list")} disabled={activeTab === "list"}>All Students</button>
         {" "}
-        <button onClick={() => setActiveTab("add")} disabled={activeTab === "add"}>Add Student</button>
+        <button onClick={() => { setEditingStudent(null); setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" }); setActiveTab("add"); }} disabled={activeTab === "add" && !editingStudent}>Add Student</button>
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -98,24 +145,6 @@ export default function StudentApp() {
               <option value="">Select a course</option>
               {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-          </div>
-
-          <div className="form-group">
-            <label>Branch: </label>
-            <select value={form.branch} onChange={(e) => setForm({ ...form, branch: e.target.value })}>
-              <option value="">Select a branch</option>
-              {BRANCHES.map((b) => <option key={b} value={b}>{b}</option>)}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Domain: </label>
-            <input
-              type="text"
-              value={form.domain}
-              onChange={(e) => setForm({ ...form, domain: e.target.value })}
-              placeholder="Domain"
-            />
           </div>
 
           <div className="form-group">
@@ -168,8 +197,8 @@ export default function StudentApp() {
             />
           </div>
           
-          <button className="btn-primary" onClick={handleSubmit}>
-            Enroll Student
+          <button className="btn-primary" onClick={editingStudent ? handleUpdate : handleSubmit}>
+            {editingStudent ? "Update Student" : "Enroll Student"}
           </button>
         </div>
 
@@ -194,13 +223,12 @@ export default function StudentApp() {
                   <th>Name</th>
                   <th>Age</th>
                   <th>Course</th>
-                  <th>Branch</th>
-                  <th>Domain</th>
                   <th>Roll No</th>
                   <th>University</th>
                   <th>Email</th>
                   <th>Phone</th>
                   <th>Address</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,13 +238,16 @@ export default function StudentApp() {
                     <td>{s.name}</td>
                     <td>{s.age}</td>
                     <td>{s.course}</td>
-                    <td>{s.branch}</td>
-                    <td>{s.domain}</td>
                     <td>{s.rollno}</td>
                     <td>{s.university}</td>
                     <td>{s.email}</td>
                     <td>{s.phone}</td>
                     <td>{s.address}</td>
+                    <td>
+                      <button className="btn-edit" onClick={() => handleEdit(s)}>Edit</button>
+                      {" "}
+                      <button className="btn-delete" onClick={() => handleDelete(s._id)}>Delete</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
