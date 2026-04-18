@@ -1,2 +1,1 @@
-## This is a demo student app using MERN
-- connects to live server using mongodb cluster
+This is a demo project for integrating Mongo, Express and React, Node.js live.

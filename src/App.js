@@ -1,7 +1,7 @@
 import "./App.css";
 import { useState, useEffect } from "react";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://backend-timh.onrender.com";
 
 const COURSES = ["Computer Science", "Mathematics", "Physics", "Engineering", "Business", "Design", "Medicine", "Law"];
 const BRANCHES = ["Software", "Hardware", "AI", "Data Science", "Mechanical", "Civil", "Electrical", "Chemical"];
