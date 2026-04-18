@@ -1,56 +1,58 @@
-#  Student App
+# Student App
 
-A full-stack MERN (MongoDB, Express, React, Node.js) application that allows users to **submit and view student details** through a clean, interactive interface. The entire stack — frontend, backend server, and API — is fully deployed and live.
+A full-stack MERN (MongoDB, Express, React, Node.js) application for managing student records. Supports full CRUD — create, read, update, and delete — through a clean, interactive interface. The entire stack is deployed and live.
 
 ---
 
-##  Live Demo
+## Live Demo
 
 | Layer | URL |
 |---|---|
 | **Frontend (React)** | https://student-app-delta-eosin.vercel.app/ |
-| **Backend / API** | https://student-app-peach.vercel.app/ |
+| **Backend / API** | https://backend-timh.onrender.com |
 
 ---
 
-##  Features
+## Features
 
-- **Add Student Details** — Submit student information through a React form
-- **Display Students** — View all submitted student records in a structured list
-- **REST API** — Express-based API handles all data operations
-- **Persistent Storage** — MongoDB stores student records in the cloud
-- **Fully Hosted** — Frontend, backend, and database are all deployed and publicly accessible
+- **Add Student** — Submit student details through a form
+- **View Students** — Browse all records in a structured table
+- **Edit Student** — Update any existing record in place
+- **Delete Student** — Remove a record permanently
+- **Persistent Storage** — MongoDB Atlas stores all data in the cloud
+- **Fully Hosted** — Frontend on Vercel, backend on Render
 
 ---
 
-##  Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | **Frontend** | React.js |
 | **Backend** | Node.js + Express.js (`server.js`) |
 | **Database** | MongoDB (Atlas) |
-| **Hosting** | Vercel (Frontend & Backend) |
+| **Frontend Hosting** | Vercel |
+| **Backend Hosting** | Render |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 student-app/
 ├── public/               # Static assets
 ├── src/                  # React frontend source
-│   ├── components/       # React components (form, student list, etc.)
 │   ├── App.js            # Root component
+│   ├── App.css           # Styles
 │   └── index.js          # React entry point
-├── server.js             # Express backend server & API routes
+├── server.js             # Express backend server and API routes
 ├── package.json          # Dependencies and scripts
 └── .gitignore
 ```
 
 ---
 
-##  Getting Started (Local Development)
+## Getting Started (Local Development)
 
 ### Prerequisites
 
@@ -73,7 +75,7 @@ npm install
 
 ### 3. Configure Environment Variables
 
-Create a `.env` file in the project root and add your MongoDB connection URI:
+Create a `.env` file in the project root:
 
 ```env
 MONGODB_URI=your_mongodb_connection_string
@@ -100,33 +102,37 @@ The app will open at `http://localhost:3000`.
 
 ---
 
-##  API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/students` | Fetch all student records |
-| `POST` | `/api/students` | Add a new student |
+| `GET` | `/students` | Fetch all student records |
+| `POST` | `/students` | Add a new student |
+| `PUT` | `/students/:id` | Update an existing student by ID |
+| `DELETE` | `/students/:id` | Delete a student by ID |
 
 ---
 
-##  Deployment
+## Deployment
 
-This project is deployed on **Vercel**:
-
-- The **React frontend** is deployed as a standard Vercel static site.
-- The **Express backend** (`server.js`) is deployed as a Vercel serverless function.
+- The **React frontend** is deployed on [Vercel](https://vercel.com/) as a static site.
+- The **Express backend** (`server.js`) is deployed on [Render](https://render.com/) as a web service.
 - **MongoDB Atlas** is used as the cloud database.
 
-To deploy your own fork, connect the repository to [Vercel](https://vercel.com/) and add your `MONGODB_URI` as an environment variable in the Vercel project settings.
+To deploy your own fork:
+1. Push the repository to GitHub.
+2. Connect it to Vercel for the frontend.
+3. Connect it to Render for the backend.
+4. Add `MONGODB_URI` as an environment variable in both Render and Vercel project settings.
 
 ---
 
-##  Contributing
+## Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to open an [issue](https://github.com/jaswantsharma7/student-app/issues) or submit a pull request.
+Contributions, issues, and feature requests are welcome. Feel free to open an [issue](https://github.com/jaswantsharma7/student-app/issues) or submit a pull request.
 
 ---
 
-##  License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
