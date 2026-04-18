@@ -100,7 +100,7 @@ The app will open at `http://localhost:3000`.
 
 ---
 
-## 📡 API Endpoints
+##  API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -109,7 +109,7 @@ The app will open at `http://localhost:3000`.
 
 ---
 
-## 🌍 Deployment
+##  Deployment
 
 This project is deployed on **Vercel**:
 
