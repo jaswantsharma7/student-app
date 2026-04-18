@@ -9,7 +9,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) application for managing st
 | Layer | URL |
 |---|---|
 | **Frontend (React)** | https://student-app-delta-eosin.vercel.app/ |
-| **Backend / API** | https://backend-timh.onrender.com |
+| **Backend / API** | https://backend-timh.onrender.com
 
 ---
 
