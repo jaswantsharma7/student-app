@@ -40,14 +40,20 @@ A full-stack MERN (MongoDB, Express, React, Node.js) application for managing st
 
 ```
 student-app/
-├── public/               # Static assets
-├── src/                  # React frontend source
-│   ├── App.js            # Root component
-│   ├── App.css           # Styles
-│   └── index.js          # React entry point
-├── server.js             # Express backend server and API routes
-├── package.json          # Dependencies and scripts
-└── .gitignore
+├── backend/
+│   ├── server.js
+│   └── package.json
+├── frontend/
+│   ├── public/
+│   │   └── index.html
+│   ├── src/
+│   │   ├── App.js
+│   │   ├── App.css
+│   │   ├── index.js
+│   │   └── index.css
+│   ├── package.json
+├── .gitignore
+└── README.md
 ```
 
 ---
