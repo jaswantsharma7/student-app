@@ -1,7 +1,7 @@
 import "./App.css";
 import { useState, useEffect } from "react";
 
-const API_BASE = "https://backend-timh.onrender.com";
+const API_BASE = process.env.API_URL;
 
 const COURSES = ["Computer Science", "Mathematics", "Physics", "Engineering", "Business", "Design", "Medicine", "Law"];
 
