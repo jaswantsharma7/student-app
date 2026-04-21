@@ -1,7 +1,7 @@
 import "./App.css";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
-const API_BASE = process.env.REACT_APP_API_URL;
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 const COURSES = [
   "Computer Science", "Mathematics", "Physics", "Engineering",
@@ -10,11 +10,17 @@ const COURSES = [
 
 // ── Validation helpers ──
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
-const isValidPhone = (v) => /^\+?[\d][\d\s-]{5,18}[\d]$/.test(v.trim());
-// Roll no: 2–20 chars, alphanumeric + hyphens/slashes
+
+// Align frontend validation with backend logic
+const isValidPhone = (v) => {
+  const clean = v.trim();
+  // Ensure it has a '+' and enough digits for Twilio to actually work
+  return /^\+[\d]{10,15}$/.test(clean.replace(/[\s-]/g, ""));
+};
+
 const isValidRollNo = (v) => /^[A-Za-z0-9\-/]{2,20}$/.test(v.trim());
 
-
+// ── Token helpers ──
 const getToken = () => localStorage.getItem("auth_token");
 const setToken = (t) => localStorage.setItem("auth_token", t);
 const clearToken = () => localStorage.removeItem("auth_token");
@@ -33,66 +39,178 @@ const authFetch = (path, options = {}) => {
 };
 
 // ─────────────────────────────────────────
-//  AUTH FORMS
+//  OTP INPUT — 6 individual digit boxes
+// ─────────────────────────────────────────
+function OtpInput({ value, onChange, hasError }) {
+  const inputs = useRef([]);
+  const digits = (value || "      ").split("").concat(Array(6).fill(" ")).slice(0, 6);
+
+  const handleKey = (i, e) => {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      const arr = value.split("");
+      if (arr[i] && arr[i].trim()) {
+        arr[i] = "";
+        onChange(arr.join(""));
+      } else if (i > 0) {
+        arr[i - 1] = "";
+        onChange(arr.join(""));
+        inputs.current[i - 1]?.focus();
+      }
+      return;
+    }
+    if (e.key === "ArrowLeft" && i > 0) { inputs.current[i - 1]?.focus(); return; }
+    if (e.key === "ArrowRight" && i < 5) { inputs.current[i + 1]?.focus(); return; }
+  };
+
+  const handleChange = (i, e) => {
+    const char = e.target.value.replace(/\D/g, "").slice(-1);
+    if (!char) return;
+    const arr = value.split("").concat(Array(6).fill("")).slice(0, 6);
+    arr[i] = char;
+    onChange(arr.join(""));
+    if (i < 5) inputs.current[i + 1]?.focus();
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    onChange(pasted.padEnd(6, "").slice(0, 6));
+    const nextFocus = Math.min(pasted.length, 5);
+    inputs.current[nextFocus]?.focus();
+  };
+
+  return (
+    <div className="otp-boxes">
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={(el) => (inputs.current[i] = el)}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={d.trim()}
+          onChange={(e) => handleChange(i, e)}
+          onKeyDown={(e) => handleKey(i, e)}
+          onPaste={handlePaste}
+          className={`otp-box${hasError ? " input-error" : ""}`}
+          autoComplete="one-time-code"
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+//  AUTH PAGE
+//  mode: "login" | "register" | "verify"
 // ─────────────────────────────────────────
 function AuthPage({ onAuth }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email: "", phone: "", password: "", confirmPassword: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // OTP verification state
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [emailOtp, setEmailOtp] = useState("");
+  const [phoneOtp, setPhoneOtp] = useState("");
+  const [otpErrors, setOtpErrors] = useState({});
+  const [resendCooldown, setResendCooldown] = useState({ email: 0, phone: 0 });
+
+  // Cooldown timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setResendCooldown((c) => ({
+        email: c.email > 0 ? c.email - 1 : 0,
+        phone: c.phone > 0 ? c.phone - 1 : 0,
+      }));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const setField = (field) => (e) => {
-    const val = e.target.value;
-    setForm((f) => ({ ...f, [field]: val }));
-    // Clear field error as user types
+    setForm((f) => ({ ...f, [field]: e.target.value }));
     setFieldErrors((fe) => ({ ...fe, [field]: null }));
   };
 
   const validateRegisterFields = () => {
     const errs = {};
     if (!isValidEmail(form.email)) errs.email = "Enter a valid email address.";
-    if (!isValidPhone(form.phone)) errs.phone = "Enter a valid phone number (7–15 digits, optional + prefix).";
+    if (!isValidPhone(form.phone)) errs.phone = "Enter a valid phone number with country code.";
     if (form.password.length < 8) errs.password = "Password must be at least 8 characters.";
     if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match.";
     return errs;
   };
 
-  const handleSubmit = async () => {
+  // Step 1: submit registration form → sends OTPs
+
+  
+  const handleRegister = async () => {
     setError(null);
-
-    if (!form.email.trim() || !form.password) {
-      setError("Email and password are required.");
-      return;
+    if (!form.email.trim() || !form.phone.trim() || !form.password) {
+      setError("All fields are required."); return;
     }
+    const errs = validateRegisterFields();
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
 
-    if (mode === "register") {
-      if (!form.phone.trim()) { setError("Phone number is required."); return; }
-      const errs = validateRegisterFields();
-      if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
-    } else {
-      // Login: just check email format
-      if (!isValidEmail(form.email)) {
-        setFieldErrors({ email: "Enter a valid email address." });
-        return;
-      }
+    let sanitizedPhone = form.phone.trim().replace(/[\s-]/g, "");
+    if (!sanitizedPhone.startsWith("+")) {
+      sanitizedPhone = "+" + sanitizedPhone;
     }
 
     setLoading(true);
     try {
-      const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
-      const body = mode === "login"
-        ? { email: form.email.trim(), password: form.password }
-        : { email: form.email.trim(), phone: form.phone.trim(), password: form.password };
-
-      const res = await fetch(`${API_BASE}${endpoint}`, {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ 
+        email: form.email.trim(), 
+        phone: sanitizedPhone, // Send the clean version
+        password: form.password 
+      }),
+    });
+
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Registration failed.");
+      setPendingEmail(form.email.trim());
+      setResendCooldown({ email: 60, phone: 60 });
+      setMode("verify");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: submit OTPs → create account
+  const handleVerify = async () => {
+    setError(null);
+    setOtpErrors({});
+    const cleanEmail = emailOtp.replace(/\s/g, "");
+    const cleanPhone = phoneOtp.replace(/\s/g, "");
+
+    if (cleanEmail.length < 6 || cleanPhone.length < 6) {
+      setError("Enter all 6 digits of both codes."); return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingEmail, emailOtp: cleanEmail, phoneOtp: cleanPhone }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed.");
-
+      if (!res.ok) {
+        if (data.field === "emailOtp") setOtpErrors({ emailOtp: data.error });
+        else if (data.field === "phoneOtp") setOtpErrors({ phoneOtp: data.error });
+        else setError(data.error || "Verification failed.");
+        return;
+      }
       setToken(data.token);
       onAuth(data.user);
     } catch (err) {
@@ -102,18 +220,124 @@ function AuthPage({ onAuth }) {
     }
   };
 
-  const switchMode = () => {
-    setMode((m) => (m === "login" ? "register" : "login"));
+  const handleLogin = async () => {
     setError(null);
-    setFieldErrors({});
-    setForm({ email: "", phone: "", password: "", confirmPassword: "" });
+    if (!form.email.trim() || !form.password) {
+      setError("Email and password are required."); return;
+    }
+    if (!isValidEmail(form.email)) {
+      setFieldErrors({ email: "Enter a valid email address." }); return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email.trim(), password: form.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Login failed.");
+      setToken(data.token);
+      onAuth(data.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleResend = async (type) => {
+    if (resendCooldown[type] > 0) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/resend-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingEmail, type }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not resend code.");
+      setSuccess(data.message);
+      setResendCooldown((c) => ({ ...c, [type]: 60 }));
+      if (type === "email") setEmailOtp("");
+      else setPhoneOtp("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const switchMode = (next) => {
+    setMode(next);
+    setError(null);
+    setSuccess(null);
+    setFieldErrors({});
+    setOtpErrors({});
+    setForm({ email: "", phone: "", password: "", confirmPassword: "" });
+    setEmailOtp("");
+    setPhoneOtp("");
+  };
+
+  // ── Verify OTP screen ──
+  if (mode === "verify") {
+    return (
+      <div className="auth-wrapper">
+        <div className="auth-card">
+          <h2>Verify Your Identity</h2>
+          <p className="auth-subtitle">
+            Codes were sent to <strong>{pendingEmail}</strong> and your phone. Enter both below.
+          </p>
+
+          {error && <p className="error">{error}</p>}
+          {success && <p className="success-msg">{success}</p>}
+
+          <div className="form-group">
+            <label>Email verification code</label>
+            <OtpInput value={emailOtp} onChange={setEmailOtp} hasError={!!otpErrors.emailOtp} />
+            {otpErrors.emailOtp && <span className="field-error">{otpErrors.emailOtp}</span>}
+            <button
+              className="link-btn resend-btn"
+              onClick={() => handleResend("email")}
+              disabled={resendCooldown.email > 0}
+            >
+              {resendCooldown.email > 0 ? `Resend email code (${resendCooldown.email}s)` : "Resend email code"}
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label>SMS verification code</label>
+            <OtpInput value={phoneOtp} onChange={setPhoneOtp} hasError={!!otpErrors.phoneOtp} />
+            {otpErrors.phoneOtp && <span className="field-error">{otpErrors.phoneOtp}</span>}
+            <button
+              className="link-btn resend-btn"
+              onClick={() => handleResend("phone")}
+              disabled={resendCooldown.phone > 0}
+            >
+              {resendCooldown.phone > 0 ? `Resend SMS code (${resendCooldown.phone}s)` : "Resend SMS code"}
+            </button>
+          </div>
+
+          <button className="btn-primary auth-btn" onClick={handleVerify} disabled={loading}>
+            {loading ? "Verifying..." : "Verify and Create Account"}
+          </button>
+
+          <p className="auth-switch">
+            Wrong details?{" "}
+            <button className="link-btn" onClick={() => switchMode("register")}>Go back</button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Login / Register screen ──
   return (
     <div className="auth-wrapper">
       <div className="auth-card">
         <h2>Student Registry</h2>
-        <p className="auth-subtitle">{mode === "login" ? "Sign in to your account" : "Create a new account"}</p>
+        <p className="auth-subtitle">
+          {mode === "login" ? "Sign in to your account" : "Create a new account"}
+        </p>
 
         {error && <p className="error">{error}</p>}
 
@@ -143,7 +367,7 @@ function AuthPage({ onAuth }) {
               onChange={setField("phone")}
               onBlur={() => {
                 if (form.phone && !isValidPhone(form.phone))
-                  setFieldErrors((fe) => ({ ...fe, phone: "Enter a valid phone number." }));
+                  setFieldErrors((fe) => ({ ...fe, phone: "Enter a valid phone number with country code." }));
               }}
               placeholder="+91 98765 43210"
               autoComplete="tel"
@@ -181,13 +405,21 @@ function AuthPage({ onAuth }) {
           </div>
         )}
 
-        <button className="btn-primary auth-btn" onClick={handleSubmit} disabled={loading}>
-          {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
+        <button
+          className="btn-primary auth-btn"
+          onClick={mode === "login" ? handleLogin : handleRegister}
+          disabled={loading}
+        >
+          {loading
+            ? "Please wait..."
+            : mode === "login"
+            ? "Sign In"
+            : "Send Verification Codes"}
         </button>
 
         <p className="auth-switch">
           {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button className="link-btn" onClick={switchMode}>
+          <button className="link-btn" onClick={() => switchMode(mode === "login" ? "register" : "login")}>
             {mode === "login" ? "Register" : "Sign in"}
           </button>
         </p>
@@ -196,12 +428,11 @@ function AuthPage({ onAuth }) {
   );
 }
 
-
 // ─────────────────────────────────────────
 //  MAIN APP
 // ─────────────────────────────────────────
 export default function StudentApp() {
-  const [user, setUser] = useState(null);       // null = not checked yet
+  const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -211,7 +442,6 @@ export default function StudentApp() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [formErrors, setFormErrors] = useState({});
 
-  // On mount: verify stored token
   useEffect(() => {
     const token = getToken();
     if (!token) { setAuthChecked(true); return; }
@@ -251,8 +481,6 @@ export default function StudentApp() {
     setStudents([]);
   };
 
-  const handleAuth = (userData) => setUser(userData);
-
   const resetForm = () => {
     setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
     setFormErrors({});
@@ -266,7 +494,7 @@ export default function StudentApp() {
     if (!isValidRollNo(form.rollno)) errs.rollno = "Roll number must be 2–20 alphanumeric characters (hyphens and slashes allowed).";
     if (!form.university.trim()) errs.university = "University is required.";
     if (!isValidEmail(form.email)) errs.email = "Enter a valid email address.";
-    if (!isValidPhone(form.phone)) errs.phone = "Enter a valid phone number (7–15 digits, optional + prefix).";
+    if (!isValidPhone(form.phone)) errs.phone = "Enter a valid phone number with country code.";
     if (!form.address.trim()) errs.address = "Address is required.";
     return errs;
   };
@@ -335,9 +563,8 @@ export default function StudentApp() {
     }
   };
 
-  // ── Render guards ──
   if (!authChecked) return <div className="app-wrapper"><p className="state-message">Loading...</p></div>;
-  if (!user) return <AuthPage onAuth={handleAuth} />;
+  if (!user) return <AuthPage onAuth={(u) => setUser(u)} />;
 
   return (
     <div className="app-wrapper">
@@ -440,7 +667,7 @@ export default function StudentApp() {
               onChange={(e) => { setForm({ ...form, phone: e.target.value }); setFormErrors((fe) => ({ ...fe, phone: null })); }}
               onBlur={() => {
                 if (form.phone && !isValidPhone(form.phone))
-                  setFormErrors((fe) => ({ ...fe, phone: "Enter a valid phone number." }));
+                  setFormErrors((fe) => ({ ...fe, phone: "Enter a valid phone number with country code." }));
               }}
               placeholder="+91 98765 43210"
               className={formErrors.phone ? "input-error" : ""}

@@ -57,7 +57,7 @@ h2 {
   border-radius: 12px;
   padding: 32px;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -71,6 +71,11 @@ h2 {
   font-size: 13px;
   color: #888;
   margin-top: -8px;
+}
+
+.auth-subtitle strong {
+  color: #444;
+  font-weight: 500;
 }
 
 .auth-btn {
@@ -96,8 +101,72 @@ h2 {
   font-family: inherit;
 }
 
-.link-btn:hover {
+.link-btn:hover:not(:disabled) {
   color: #333;
+}
+
+.link-btn:disabled {
+  color: #bbb;
+  cursor: default;
+  text-decoration: none;
+}
+
+/* ── Success message ── */
+
+.success-msg {
+  background: #f0faf4;
+  color: #1e7e34;
+  border: 1px solid #b7dfc5;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* ── OTP boxes ── */
+
+.otp-boxes {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.otp-box {
+  width: 42px;
+  height: 46px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  color: #111;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  padding: 0;
+  /* override form-group input sizing */
+  flex: 0 0 42px;
+}
+
+.otp-box:focus {
+  border-color: #555;
+}
+
+.otp-box.input-error {
+  border-color: #e74c3c;
+  background: #fff8f8;
+}
+
+.resend-btn {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  text-decoration: none;
+  color: #555;
+}
+
+.resend-btn:hover:not(:disabled) {
+  color: #111;
+  text-decoration: underline;
 }
 
 /* ── User bar ── */
@@ -175,7 +244,7 @@ h2 {
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 13px;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 
 /* ── Form ── */
@@ -229,6 +298,26 @@ h2 {
 
 .form-group input::placeholder {
   color: #bbb;
+}
+
+/* ── Field-level validation errors ── */
+
+.field-error {
+  font-size: 11px;
+  color: #c0392b;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.form-group input.input-error,
+.form-group select.input-error {
+  border-color: #e74c3c;
+  background: #fff8f8;
+}
+
+.form-group input.input-error:focus,
+.form-group select.input-error:focus {
+  border-color: #c0392b;
 }
 
 /* ── Buttons ── */
@@ -330,26 +419,6 @@ tbody td:first-child {
   font-size: 12px;
 }
 
-/* ── Field-level validation errors ── */
-
-.field-error {
-  font-size: 11px;
-  color: #c0392b;
-  margin-top: 2px;
-  line-height: 1.4;
-}
-
-.form-group input.input-error,
-.form-group select.input-error {
-  border-color: #e74c3c;
-  background: #fff8f8;
-}
-
-.form-group input.input-error:focus,
-.form-group select.input-error:focus {
-  border-color: #c0392b;
-}
-
 /* ── Empty / Loading states ── */
 
 .state-message {
@@ -407,5 +476,14 @@ tbody td:first-child {
   }
   .btn-primary {
     grid-column: 1;
+  }
+  .otp-boxes {
+    gap: 6px;
+  }
+  .otp-box {
+    width: 38px;
+    height: 42px;
+    font-size: 18px;
+    flex: 0 0 38px;
   }
 }
