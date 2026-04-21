@@ -1,5 +1,9 @@
 # Student Registry App
 
+Live App: https://student-app-mocha.vercel.app/
+
+API Base URL: https://backend-timh.onrender.com/
+
 A full-stack MERN application for managing student records, with per-user authentication and isolated data.
 
 ---
