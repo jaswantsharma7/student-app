@@ -8,7 +8,13 @@ const COURSES = [
   "Business", "Design", "Medicine", "Law",
 ];
 
-// ── Token helpers ──
+// ── Validation helpers ──
+const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+const isValidPhone = (v) => /^\+?[\d][\d\s\-]{5,18}[\d]$/.test(v.trim());
+// Roll no: 2–20 chars, alphanumeric + hyphens/slashes
+const isValidRollNo = (v) => /^[A-Za-z0-9\-\/]{2,20}$/.test(v.trim());
+
+
 const getToken = () => localStorage.getItem("auth_token");
 const setToken = (t) => localStorage.setItem("auth_token", t);
 const clearToken = () => localStorage.removeItem("auth_token");
@@ -30,12 +36,27 @@ const authFetch = (path, options = {}) => {
 //  AUTH FORMS
 // ─────────────────────────────────────────
 function AuthPage({ onAuth }) {
-  const [mode, setMode] = useState("login"); // "login" | "register"
+  const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email: "", phone: "", password: "", confirmPassword: "" });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const setField = (field) => (e) => {
+    const val = e.target.value;
+    setForm((f) => ({ ...f, [field]: val }));
+    // Clear field error as user types
+    setFieldErrors((fe) => ({ ...fe, [field]: null }));
+  };
+
+  const validateRegisterFields = () => {
+    const errs = {};
+    if (!isValidEmail(form.email)) errs.email = "Enter a valid email address.";
+    if (!isValidPhone(form.phone)) errs.phone = "Enter a valid phone number (7–15 digits, optional + prefix).";
+    if (form.password.length < 8) errs.password = "Password must be at least 8 characters.";
+    if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match.";
+    return errs;
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -47,8 +68,14 @@ function AuthPage({ onAuth }) {
 
     if (mode === "register") {
       if (!form.phone.trim()) { setError("Phone number is required."); return; }
-      if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
-      if (form.password !== form.confirmPassword) { setError("Passwords do not match."); return; }
+      const errs = validateRegisterFields();
+      if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    } else {
+      // Login: just check email format
+      if (!isValidEmail(form.email)) {
+        setFieldErrors({ email: "Enter a valid email address." });
+        return;
+      }
     }
 
     setLoading(true);
@@ -78,6 +105,7 @@ function AuthPage({ onAuth }) {
   const switchMode = () => {
     setMode((m) => (m === "login" ? "register" : "login"));
     setError(null);
+    setFieldErrors({});
     setForm({ email: "", phone: "", password: "", confirmPassword: "" });
   };
 
@@ -91,25 +119,65 @@ function AuthPage({ onAuth }) {
 
         <div className="form-group">
           <label>Email</label>
-          <input type="email" value={form.email} onChange={set("email")} placeholder="you@example.com" autoComplete="email" />
+          <input
+            type="email"
+            value={form.email}
+            onChange={setField("email")}
+            onBlur={() => {
+              if (form.email && !isValidEmail(form.email))
+                setFieldErrors((fe) => ({ ...fe, email: "Enter a valid email address." }));
+            }}
+            placeholder="you@example.com"
+            autoComplete="email"
+            className={fieldErrors.email ? "input-error" : ""}
+          />
+          {fieldErrors.email && <span className="field-error">{fieldErrors.email}</span>}
         </div>
 
         {mode === "register" && (
           <div className="form-group">
             <label>Phone</label>
-            <input type="tel" value={form.phone} onChange={set("phone")} placeholder="+91 98765 43210" autoComplete="tel" />
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={setField("phone")}
+              onBlur={() => {
+                if (form.phone && !isValidPhone(form.phone))
+                  setFieldErrors((fe) => ({ ...fe, phone: "Enter a valid phone number." }));
+              }}
+              placeholder="+91 98765 43210"
+              autoComplete="tel"
+              className={fieldErrors.phone ? "input-error" : ""}
+            />
+            {fieldErrors.phone && <span className="field-error">{fieldErrors.phone}</span>}
           </div>
         )}
 
         <div className="form-group">
           <label>Password</label>
-          <input type="password" value={form.password} onChange={set("password")} placeholder={mode === "register" ? "Min. 8 characters" : "Your password"} autoComplete={mode === "login" ? "current-password" : "new-password"} />
+          <input
+            type="password"
+            value={form.password}
+            onChange={setField("password")}
+            placeholder={mode === "register" ? "Min. 8 characters" : "Your password"}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            className={fieldErrors.password ? "input-error" : ""}
+          />
+          {fieldErrors.password && <span className="field-error">{fieldErrors.password}</span>}
         </div>
 
         {mode === "register" && (
           <div className="form-group">
             <label>Confirm Password</label>
-            <input type="password" value={form.confirmPassword} onChange={set("confirmPassword")} placeholder="Repeat password" autoComplete="new-password" />
+            <input
+              type="password"
+              value={form.confirmPassword}
+              onChange={setField("confirmPassword")}
+              placeholder="Repeat password"
+              autoComplete="new-password"
+              className={fieldErrors.confirmPassword ? "input-error" : ""}
+            />
+            {fieldErrors.confirmPassword && <span className="field-error">{fieldErrors.confirmPassword}</span>}
           </div>
         )}
 
@@ -128,6 +196,7 @@ function AuthPage({ onAuth }) {
   );
 }
 
+
 // ─────────────────────────────────────────
 //  MAIN APP
 // ─────────────────────────────────────────
@@ -140,6 +209,7 @@ export default function StudentApp() {
   const [form, setForm] = useState({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
   const [activeTab, setActiveTab] = useState("list");
   const [editingStudent, setEditingStudent] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
 
   // On mount: verify stored token
   useEffect(() => {
@@ -183,13 +253,29 @@ export default function StudentApp() {
 
   const handleAuth = (userData) => setUser(userData);
 
-  const resetForm = () => setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
+  const resetForm = () => {
+    setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
+    setFormErrors({});
+  };
+
+  const validateStudentForm = () => {
+    const errs = {};
+    if (!form.name.trim()) errs.name = "Name is required.";
+    if (!form.age || isNaN(form.age) || Number(form.age) < 1 || Number(form.age) > 120) errs.age = "Enter a valid age (1–120).";
+    if (!form.course) errs.course = "Select a course.";
+    if (!isValidRollNo(form.rollno)) errs.rollno = "Roll number must be 2–20 alphanumeric characters (hyphens and slashes allowed).";
+    if (!form.university.trim()) errs.university = "University is required.";
+    if (!isValidEmail(form.email)) errs.email = "Enter a valid email address.";
+    if (!isValidPhone(form.phone)) errs.phone = "Enter a valid phone number (7–15 digits, optional + prefix).";
+    if (!form.address.trim()) errs.address = "Address is required.";
+    return errs;
+  };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.age || !form.course || !form.rollno.trim() || !form.university.trim() || !form.email.trim() || !form.phone.trim() || !form.address.trim()) {
-      setError("All fields are required."); return;
-    }
     setError(null);
+    const errs = validateStudentForm();
+    if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
+    setFormErrors({});
     try {
       const res = await authFetch("/students", {
         method: "POST",
@@ -228,10 +314,10 @@ export default function StudentApp() {
   };
 
   const handleUpdate = async () => {
-    if (!form.name.trim() || !form.age || !form.course || !form.rollno.trim() || !form.university.trim() || !form.email.trim() || !form.phone.trim() || !form.address.trim()) {
-      setError("All fields are required."); return;
-    }
     setError(null);
+    const errs = validateStudentForm();
+    if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
+    setFormErrors({});
     try {
       const res = await authFetch(`/students/${editingStudent._id}`, {
         method: "PUT",
@@ -280,39 +366,98 @@ export default function StudentApp() {
         <div className="form-card">
           <div className="form-group">
             <label>Name</label>
-            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
+            <input type="text" value={form.name}
+              onChange={(e) => { setForm({ ...form, name: e.target.value }); setFormErrors((fe) => ({ ...fe, name: null })); }}
+              placeholder="Full name"
+              className={formErrors.name ? "input-error" : ""}
+            />
+            {formErrors.name && <span className="field-error">{formErrors.name}</span>}
           </div>
+
           <div className="form-group">
             <label>Age</label>
-            <input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} placeholder="Age" />
+            <input type="number" value={form.age} min="1" max="120"
+              onChange={(e) => { setForm({ ...form, age: e.target.value }); setFormErrors((fe) => ({ ...fe, age: null })); }}
+              placeholder="Age"
+              className={formErrors.age ? "input-error" : ""}
+            />
+            {formErrors.age && <span className="field-error">{formErrors.age}</span>}
           </div>
+
           <div className="form-group">
             <label>Course</label>
-            <select value={form.course} onChange={(e) => setForm({ ...form, course: e.target.value })}>
+            <select value={form.course}
+              onChange={(e) => { setForm({ ...form, course: e.target.value }); setFormErrors((fe) => ({ ...fe, course: null })); }}
+              className={formErrors.course ? "input-error" : ""}
+            >
               <option value="">Select a course</option>
               {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
+            {formErrors.course && <span className="field-error">{formErrors.course}</span>}
           </div>
+
           <div className="form-group">
             <label>Roll No</label>
-            <input type="text" value={form.rollno} onChange={(e) => setForm({ ...form, rollno: e.target.value })} placeholder="Roll number" />
+            <input type="text" value={form.rollno}
+              onChange={(e) => { setForm({ ...form, rollno: e.target.value }); setFormErrors((fe) => ({ ...fe, rollno: null })); }}
+              onBlur={() => {
+                if (form.rollno && !isValidRollNo(form.rollno))
+                  setFormErrors((fe) => ({ ...fe, rollno: "2–20 alphanumeric characters (hyphens and slashes allowed)." }));
+              }}
+              placeholder="e.g. CS-2024-001"
+              className={formErrors.rollno ? "input-error" : ""}
+            />
+            {formErrors.rollno && <span className="field-error">{formErrors.rollno}</span>}
           </div>
+
           <div className="form-group">
             <label>University</label>
-            <input type="text" value={form.university} onChange={(e) => setForm({ ...form, university: e.target.value })} placeholder="University" />
+            <input type="text" value={form.university}
+              onChange={(e) => { setForm({ ...form, university: e.target.value }); setFormErrors((fe) => ({ ...fe, university: null })); }}
+              placeholder="University name"
+              className={formErrors.university ? "input-error" : ""}
+            />
+            {formErrors.university && <span className="field-error">{formErrors.university}</span>}
           </div>
+
           <div className="form-group">
             <label>Email</label>
-            <input type="text" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
+            <input type="email" value={form.email}
+              onChange={(e) => { setForm({ ...form, email: e.target.value }); setFormErrors((fe) => ({ ...fe, email: null })); }}
+              onBlur={() => {
+                if (form.email && !isValidEmail(form.email))
+                  setFormErrors((fe) => ({ ...fe, email: "Enter a valid email address." }));
+              }}
+              placeholder="student@example.com"
+              className={formErrors.email ? "input-error" : ""}
+            />
+            {formErrors.email && <span className="field-error">{formErrors.email}</span>}
           </div>
+
           <div className="form-group">
             <label>Phone Number</label>
-            <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number" />
+            <input type="tel" value={form.phone}
+              onChange={(e) => { setForm({ ...form, phone: e.target.value }); setFormErrors((fe) => ({ ...fe, phone: null })); }}
+              onBlur={() => {
+                if (form.phone && !isValidPhone(form.phone))
+                  setFormErrors((fe) => ({ ...fe, phone: "Enter a valid phone number." }));
+              }}
+              placeholder="+91 98765 43210"
+              className={formErrors.phone ? "input-error" : ""}
+            />
+            {formErrors.phone && <span className="field-error">{formErrors.phone}</span>}
           </div>
+
           <div className="form-group full-width">
             <label>Address</label>
-            <input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Address" />
+            <input type="text" value={form.address}
+              onChange={(e) => { setForm({ ...form, address: e.target.value }); setFormErrors((fe) => ({ ...fe, address: null })); }}
+              placeholder="Full address"
+              className={formErrors.address ? "input-error" : ""}
+            />
+            {formErrors.address && <span className="field-error">{formErrors.address}</span>}
           </div>
+
           <button className="btn-primary" onClick={editingStudent ? handleUpdate : handleSubmit}>
             {editingStudent ? "Update Student" : "Enroll Student"}
           </button>

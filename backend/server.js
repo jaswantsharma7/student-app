@@ -47,7 +47,8 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    match: [/^\+?[\d\s\-().]{7,20}$/, 'Invalid phone number'],
+    // Accepts optional leading +, then 7–15 digits (spaces/hyphens allowed between groups)
+    match: [/^\+?[\d][\d\s\-]{5,18}[\d]$/, 'Invalid phone number'],
   },
   passwordHash: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
@@ -60,10 +61,10 @@ const studentSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 100 },
   age: { type: Number, required: true, min: 1, max: 120 },
   course: { type: String, required: true, trim: true, maxlength: 100 },
-  rollno: { type: String, required: true, trim: true, maxlength: 50 },
+  rollno: { type: String, required: true, trim: true, maxlength: 50, match: [/^[A-Za-z0-9\-\/]{2,20}$/, 'Roll number must be 2–20 alphanumeric characters (hyphens and slashes allowed)'] },
   university: { type: String, required: true, trim: true, maxlength: 150 },
-  email: { type: String, required: true, trim: true, maxlength: 200 },
-  phone: { type: String, required: true, trim: true, maxlength: 30 },
+  email: { type: String, required: true, trim: true, maxlength: 200, match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Invalid student email format'] },
+  phone: { type: String, required: true, trim: true, maxlength: 30, match: [/^\+?[\d][\d\s\-]{5,18}[\d]$/, 'Invalid student phone number'] },
   address: { type: String, required: true, trim: true, maxlength: 300 },
 });
 
@@ -109,7 +110,10 @@ app.post('/auth/register', async (req, res) => {
     if (existing)
       return res.status(409).json({ error: 'An account with this email already exists.' });
 
-    
+    const existingPhone = await User.findOne({ phone: phone.trim() });
+    if (existingPhone)
+      return res.status(409).json({ error: 'An account with this phone number already exists.' });
+
     const passwordHash = await bcrypt.hash(password, 12);
     const user = new User({ email, phone, passwordHash });
     await user.save();
@@ -117,8 +121,10 @@ app.post('/auth/register', async (req, res) => {
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user: { id: user._id, email: user.email, phone: user.phone } });
   } catch (err) {
-    if (err.code === 11000)
-      return res.status(409).json({ error: 'An account with this email already exists.' });
+    if (err.code === 11000) {
+      const field = err.keyPattern && err.keyPattern.phone ? 'phone number' : 'email';
+      return res.status(409).json({ error: `An account with this ${field} already exists.` });
+    }
     if (err.name === 'ValidationError') {
       const msg = Object.values(err.errors).map(e => e.message).join(' ');
       return res.status(400).json({ error: msg });
