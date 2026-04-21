@@ -10,9 +10,9 @@ const COURSES = [
 
 // ── Validation helpers ──
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
-const isValidPhone = (v) => /^\+?[\d][\d\s\-]{5,18}[\d]$/.test(v.trim());
+const isValidPhone = (v) => /^\+?[\d][\d\s-]{5,18}[\d]$/.test(v.trim());
 // Roll no: 2–20 chars, alphanumeric + hyphens/slashes
-const isValidRollNo = (v) => /^[A-Za-z0-9\-\/]{2,20}$/.test(v.trim());
+const isValidRollNo = (v) => /^[A-Za-z0-9\-/]{2,20}$/.test(v.trim());
 
 
 const getToken = () => localStorage.getItem("auth_token");
