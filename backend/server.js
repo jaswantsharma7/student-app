@@ -12,9 +12,7 @@ const { setServers } = require('node:dns/promises');
 setServers(['8.8.8.8', '1.1.1.1']);
 
 // ── CORS ──
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:3000'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS;
 
 app.use(cors({
   origin: (origin, callback) => {
