@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
+const rateLimit = require('express-rate-limit');
 
 require('dotenv').config();
 const mongoose = require('mongoose');
@@ -14,7 +15,15 @@ const { setServers } = require('node:dns/promises');
 setServers(['8.8.8.8', '1.1.1.1']);
 
 // ── CORS ──
-const allowedOrigins = process.env.ALLOWED_ORIGINS;
+// Bug 3 fix: split the env var into an array so multiple origins work correctly.
+// A raw string .includes(origin) does substring matching, not exact-origin matching,
+// so "https://evil-myapp.com" would pass if your env var contained "myapp.com".
+// Set ALLOWED_ORIGINS as a comma-separated list, e.g.:
+//   ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
+const allowedOrigins = (process.env.ALLOWED_ORIGINS)
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -89,7 +98,7 @@ const studentSchema = new mongoose.Schema({
   },
   phone: {
     type: String, required: true, trim: true, maxlength: 30,
-    match: [/^\+?[\d][\d\s\-]{5,18}[\d]$/, 'Invalid student phone number'], 
+    match: [/^\+?[\d][\d\s\-]{5,18}[\d]$/, 'Invalid student phone number'],
   },
   address: { type: String, required: true, trim: true, maxlength: 300 },
 });
@@ -185,6 +194,49 @@ const authenticate = (req, res, next) => {
   }
 };
 
+// ── Bug 4 fix: Rate limiting ──
+// Scoped limiters on every auth mutation endpoint to prevent brute-force
+// attacks and uncontrolled Twilio SMS spend.
+
+// Register: 5 attempts / IP / 15 min — stops throwaway-account spam and
+// runaway SMS charges from mass registration attempts.
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many registration attempts. Please try again in 15 minutes.' },
+});
+
+// Login: 10 attempts / IP / 15 min — stops password brute-force.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+});
+
+// OTP verify: 10 attempts / IP / 10 min — the per-code 5-attempt lockout already
+// exists in verifyOtp(), but this adds a network-level guard against distributed
+// guessing across multiple codes.
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many verification attempts. Please try again in 10 minutes.' },
+});
+
+// Resend OTP: 5 resends / IP / 10 min — prevents SMS flooding.
+const resendLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many resend requests. Please wait before trying again.' },
+});
+
 const pickFields = (obj, fields) => {
   const out = {};
   for (const f of fields) if (obj[f] !== undefined) out[f] = obj[f];
@@ -202,7 +254,7 @@ app.get('/', (req, res) => res.json({ status: 'API running' }));
 // ────────────────────────────────────────────────
 
 // Step 1 — Register (save pending, send OTPs)
-app.post('/auth/register', async (req, res) => {
+app.post('/auth/register', registerLimiter, async (req, res) => {
   try {
     const { email, phone, password } = req.body;
     if (!email || !phone || !password)
@@ -219,9 +271,35 @@ app.post('/auth/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Upsert pending record (handles re-registrations before expiry)
-    await PendingUser.findOneAndDelete({ email: normEmail });
-    await PendingUser.create({ email: normEmail, phone: phone.trim(), passwordHash });
+    // Bug 2 fix: replace delete+create two-step with a single atomic upsert.
+    //
+    // The original code did:
+    //   await PendingUser.findOneAndDelete(...)   // step A
+    //   await PendingUser.create(...)             // step B
+    //
+    // Two concurrent requests for the same email could both pass step A (both
+    // deletions succeed, nothing to delete on the second), then both reach
+    // step B and race to insert — the loser throws a duplicate-key error that
+    // bubbles up as a 500, and the winner stores whichever passwordHash arrived
+    // last (not necessarily the one the user intended). With a single upsert
+    // the entire read-modify-write is one atomic MongoDB operation.
+    //
+    // We also explicitly reset `createdAt` on every upsert so the 15-minute
+    // TTL clock restarts for users who re-register before expiry.
+    await PendingUser.findOneAndUpdate(
+      { email: normEmail },
+      {
+        $set: {
+          email: normEmail,
+          phone: phone.trim(),
+          passwordHash,
+          emailVerified: false,
+          phoneVerified: false,
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     // Generate and send both OTPs concurrently
     const emailOtp = generateOtp();
@@ -265,7 +343,7 @@ app.post('/auth/register', async (req, res) => {
 });
 
 // Step 2 — Verify OTPs and create account
-app.post('/auth/verify-otp', async (req, res) => {
+app.post('/auth/verify-otp', otpLimiter, async (req, res) => {
   try {
     const { email, emailOtp, phoneOtp } = req.body;
     if (!email || !emailOtp || !phoneOtp)
@@ -287,8 +365,8 @@ app.post('/auth/verify-otp', async (req, res) => {
     if (!phoneResult.ok)
       return res.status(400).json({ error: `SMS code: ${phoneResult.error}`, field: 'phoneOtp' });
 
-    // Both verified — create the real user
-    // Guard against race condition (duplicate register attempts)
+    // Both verified — create the real user.
+    // Guard against race condition (duplicate verify attempts)
     if (await User.findOne({ email: normEmail }))
       return res.status(409).json({ error: 'An account with this email already exists.' });
 
@@ -315,7 +393,7 @@ app.post('/auth/verify-otp', async (req, res) => {
 });
 
 // Step 3 — Resend one OTP (email or phone)
-app.post('/auth/resend-otp', async (req, res) => {
+app.post('/auth/resend-otp', resendLimiter, async (req, res) => {
   try {
     const { email, type } = req.body; // type: 'email' | 'phone'
     if (!email || !['email', 'phone'].includes(type))
@@ -344,7 +422,7 @@ app.post('/auth/resend-otp', async (req, res) => {
 });
 
 // ── Login ──
-app.post('/auth/login', async (req, res) => {
+app.post('/auth/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password)

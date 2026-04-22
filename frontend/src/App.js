@@ -8,14 +8,132 @@ const COURSES = [
   "Business", "Design", "Medicine", "Law",
 ];
 
+// ── Country codes ──
+const COUNTRY_CODES = [
+  { code: "+91", iso: "IN", name: "India", flag: "🇮🇳" },
+  { code: "+1", iso: "US", name: "United States", flag: "🇺🇸" },
+  { code: "+44", iso: "GB", name: "United Kingdom", flag: "🇬🇧" },
+  { code: "+61", iso: "AU", name: "Australia", flag: "🇦🇺" },
+  { code: "+1", iso: "CA", name: "Canada", flag: "🇨🇦" },
+  { code: "+86", iso: "CN", name: "China", flag: "🇨🇳" },
+  { code: "+33", iso: "FR", name: "France", flag: "🇫🇷" },
+  { code: "+49", iso: "DE", name: "Germany", flag: "🇩🇪" },
+  { code: "+81", iso: "JP", name: "Japan", flag: "🇯🇵" },
+  { code: "+82", iso: "KR", name: "South Korea", flag: "🇰🇷" },
+  { code: "+55", iso: "BR", name: "Brazil", flag: "🇧🇷" },
+  { code: "+7", iso: "RU", name: "Russia", flag: "🇷🇺" },
+  { code: "+27", iso: "ZA", name: "South Africa", flag: "🇿🇦" },
+  { code: "+52", iso: "MX", name: "Mexico", flag: "🇲🇽" },
+  { code: "+62", iso: "ID", name: "Indonesia", flag: "🇮🇩" },
+  { code: "+92", iso: "PK", name: "Pakistan", flag: "🇵🇰" },
+  { code: "+880", iso: "BD", name: "Bangladesh", flag: "🇧🇩" },
+  { code: "+234", iso: "NG", name: "Nigeria", flag: "🇳🇬" },
+  { code: "+20", iso: "EG", name: "Egypt", flag: "🇪🇬" },
+  { code: "+34", iso: "ES", name: "Spain", flag: "🇪🇸" },
+  { code: "+39", iso: "IT", name: "Italy", flag: "🇮🇹" },
+  { code: "+31", iso: "NL", name: "Netherlands", flag: "🇳🇱" },
+  { code: "+46", iso: "SE", name: "Sweden", flag: "🇸🇪" },
+  { code: "+47", iso: "NO", name: "Norway", flag: "🇳🇴" },
+  { code: "+45", iso: "DK", name: "Denmark", flag: "🇩🇰" },
+  { code: "+358", iso: "FI", name: "Finland", flag: "🇫🇮" },
+  { code: "+41", iso: "CH", name: "Switzerland", flag: "🇨🇭" },
+  { code: "+43", iso: "AT", name: "Austria", flag: "🇦🇹" },
+  { code: "+32", iso: "BE", name: "Belgium", flag: "🇧🇪" },
+  { code: "+351", iso: "PT", name: "Portugal", flag: "🇵🇹" },
+  { code: "+48", iso: "PL", name: "Poland", flag: "🇵🇱" },
+  { code: "+380", iso: "UA", name: "Ukraine", flag: "🇺🇦" },
+  { code: "+90", iso: "TR", name: "Turkey", flag: "🇹🇷" },
+  { code: "+966", iso: "SA", name: "Saudi Arabia", flag: "🇸🇦" },
+  { code: "+971", iso: "AE", name: "UAE", flag: "🇦🇪" },
+  { code: "+972", iso: "IL", name: "Israel", flag: "🇮🇱" },
+  { code: "+65", iso: "SG", name: "Singapore", flag: "🇸🇬" },
+  { code: "+60", iso: "MY", name: "Malaysia", flag: "🇲🇾" },
+  { code: "+66", iso: "TH", name: "Thailand", flag: "🇹🇭" },
+  { code: "+84", iso: "VN", name: "Vietnam", flag: "🇻🇳" },
+  { code: "+63", iso: "PH", name: "Philippines", flag: "🇵🇭" },
+  { code: "+94", iso: "LK", name: "Sri Lanka", flag: "🇱🇰" },
+  { code: "+977", iso: "NP", name: "Nepal", flag: "🇳🇵" },
+  { code: "+98", iso: "IR", name: "Iran", flag: "🇮🇷" },
+  { code: "+964", iso: "IQ", name: "Iraq", flag: "🇮🇶" },
+  { code: "+254", iso: "KE", name: "Kenya", flag: "🇰🇪" },
+  { code: "+233", iso: "GH", name: "Ghana", flag: "🇬🇭" },
+  { code: "+251", iso: "ET", name: "Ethiopia", flag: "🇪🇹" },
+  { code: "+255", iso: "TZ", name: "Tanzania", flag: "🇹🇿" },
+  { code: "+213", iso: "DZ", name: "Algeria", flag: "🇩🇿" },
+  { code: "+212", iso: "MA", name: "Morocco", flag: "🇲🇦" },
+  { code: "+216", iso: "TN", name: "Tunisia", flag: "🇹🇳" },
+  { code: "+64", iso: "NZ", name: "New Zealand", flag: "🇳🇿" },
+  { code: "+54", iso: "AR", name: "Argentina", flag: "🇦🇷" },
+  { code: "+56", iso: "CL", name: "Chile", flag: "🇨🇱" },
+  { code: "+57", iso: "CO", name: "Colombia", flag: "🇨🇴" },
+  { code: "+51", iso: "PE", name: "Peru", flag: "🇵🇪" },
+  { code: "+58", iso: "VE", name: "Venezuela", flag: "🇻🇪" },
+  { code: "+593", iso: "EC", name: "Ecuador", flag: "🇪🇨" },
+  { code: "+502", iso: "GT", name: "Guatemala", flag: "🇬🇹" },
+  { code: "+503", iso: "SV", name: "El Salvador", flag: "🇸🇻" },
+  { code: "+504", iso: "HN", name: "Honduras", flag: "🇭🇳" },
+  { code: "+505", iso: "NI", name: "Nicaragua", flag: "🇳🇮" },
+  { code: "+506", iso: "CR", name: "Costa Rica", flag: "🇨🇷" },
+  { code: "+507", iso: "PA", name: "Panama", flag: "🇵🇦" },
+  { code: "+53", iso: "CU", name: "Cuba", flag: "🇨🇺" },
+  { code: "+1-876", iso: "JM", name: "Jamaica", flag: "🇯🇲" },
+  { code: "+30", iso: "GR", name: "Greece", flag: "🇬🇷" },
+  { code: "+36", iso: "HU", name: "Hungary", flag: "🇭🇺" },
+  { code: "+420", iso: "CZ", name: "Czech Republic", flag: "🇨🇿" },
+  { code: "+421", iso: "SK", name: "Slovakia", flag: "🇸🇰" },
+  { code: "+40", iso: "RO", name: "Romania", flag: "🇷🇴" },
+  { code: "+359", iso: "BG", name: "Bulgaria", flag: "🇧🇬" },
+  { code: "+385", iso: "HR", name: "Croatia", flag: "🇭🇷" },
+  { code: "+381", iso: "RS", name: "Serbia", flag: "🇷🇸" },
+  { code: "+370", iso: "LT", name: "Lithuania", flag: "🇱🇹" },
+  { code: "+371", iso: "LV", name: "Latvia", flag: "🇱🇻" },
+  { code: "+372", iso: "EE", name: "Estonia", flag: "🇪🇪" },
+  { code: "+353", iso: "IE", name: "Ireland", flag: "🇮🇪" },
+  { code: "+354", iso: "IS", name: "Iceland", flag: "🇮🇸" },
+  { code: "+352", iso: "LU", name: "Luxembourg", flag: "🇱🇺" },
+  { code: "+356", iso: "MT", name: "Malta", flag: "🇲🇹" },
+  { code: "+357", iso: "CY", name: "Cyprus", flag: "🇨🇾" },
+  { code: "+850", iso: "KP", name: "North Korea", flag: "🇰🇵" },
+  { code: "+886", iso: "TW", name: "Taiwan", flag: "🇹🇼" },
+  { code: "+852", iso: "HK", name: "Hong Kong", flag: "🇭🇰" },
+  { code: "+853", iso: "MO", name: "Macau", flag: "🇲🇴" },
+  { code: "+976", iso: "MN", name: "Mongolia", flag: "🇲🇳" },
+  { code: "+855", iso: "KH", name: "Cambodia", flag: "🇰🇭" },
+  { code: "+856", iso: "LA", name: "Laos", flag: "🇱🇦" },
+  { code: "+95", iso: "MM", name: "Myanmar", flag: "🇲🇲" },
+  { code: "+673", iso: "BN", name: "Brunei", flag: "🇧🇳" },
+  { code: "+670", iso: "TL", name: "Timor-Leste", flag: "🇹🇱" },
+  { code: "+679", iso: "FJ", name: "Fiji", flag: "🇫🇯" },
+  { code: "+675", iso: "PG", name: "Papua New Guinea", flag: "🇵🇬" },
+  { code: "+677", iso: "SB", name: "Solomon Islands", flag: "🇸🇧" },
+  { code: "+93", iso: "AF", name: "Afghanistan", flag: "🇦🇫" },
+  { code: "+374", iso: "AM", name: "Armenia", flag: "🇦🇲" },
+  { code: "+994", iso: "AZ", name: "Azerbaijan", flag: "🇦🇿" },
+  { code: "+375", iso: "BY", name: "Belarus", flag: "🇧🇾" },
+  { code: "+995", iso: "GE", name: "Georgia", flag: "🇬🇪" },
+  { code: "+7", iso: "KZ", name: "Kazakhstan", flag: "🇰🇿" },
+  { code: "+996", iso: "KG", name: "Kyrgyzstan", flag: "🇰🇬" },
+  { code: "+998", iso: "UZ", name: "Uzbekistan", flag: "🇺🇿" },
+  { code: "+992", iso: "TJ", name: "Tajikistan", flag: "🇹🇯" },
+  { code: "+993", iso: "TM", name: "Turkmenistan", flag: "🇹🇲" },
+];
+
+// Default: India +91
+const DEFAULT_COUNTRY = COUNTRY_CODES[0];
+
+// ── Phone state helper ──
+// Returns E.164: countryCode + localNumber (digits only)
+const buildE164 = (countryCode, localNumber) => {
+  const digits = localNumber.replace(/\D/g, "");
+  return `${countryCode}${digits}`;
+};
+
 // ── Validation helpers ──
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 
-// Align frontend validation with backend logic
-const isValidPhone = (v) => {
-  const clean = v.trim();
-  // Ensure it has a '+' and enough digits for Twilio to actually work
-  return /^\+[\d]{10,15}$/.test(clean.replace(/[\s-]/g, ""));
+const isValidLocalNumber = (v) => {
+  const digits = v.replace(/\D/g, "");
+  return digits.length >= 6 && digits.length <= 13;
 };
 
 const isValidRollNo = (v) => /^[A-Za-z0-9\-/]{2,20}$/.test(v.trim());
@@ -37,6 +155,125 @@ const authFetch = (path, options = {}) => {
     },
   });
 };
+
+// ─────────────────────────────────────────
+//  COUNTRY CODE SELECTOR
+// ─────────────────────────────────────────
+function CountryCodeSelector({ value, onChange, hasError }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
+
+  const selected = COUNTRY_CODES.find(
+    (c) => c.iso === value.iso && c.code === value.code
+  ) || DEFAULT_COUNTRY;
+
+  const filtered = COUNTRY_CODES.filter((c) => {
+    const q = search.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.iso.toLowerCase().includes(q) ||
+      c.code.includes(q)
+    );
+  });
+
+  useEffect(() => {
+    if (open && searchRef.current) searchRef.current.focus();
+  }, [open]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div className={`country-selector${hasError ? " input-error" : ""}`} ref={dropdownRef}>
+      <button
+        type="button"
+        className="country-trigger"
+        onClick={() => { setOpen((o) => !o); setSearch(""); }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="country-flag">{selected.flag}</span>
+        <span className="country-code-label">{selected.code}</span>
+        <span className="country-iso">{selected.iso}</span>
+        <svg className={`chevron${open ? " open" : ""}`} width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="country-dropdown" role="listbox">
+          <div className="country-search-wrap">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="6" cy="6" r="4.5" stroke="#aaa" strokeWidth="1.3"/>
+              <path d="M9.5 9.5l2.5 2.5" stroke="#aaa" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Search country or code..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="country-search"
+            />
+          </div>
+          <div className="country-list">
+            {filtered.length === 0 ? (
+              <div className="country-empty">No results found</div>
+            ) : (
+              filtered.map((c) => (
+                <button
+                  key={`${c.iso}-${c.code}`}
+                  type="button"
+                  role="option"
+                  aria-selected={c.iso === selected.iso && c.code === selected.code}
+                  className={`country-option${c.iso === selected.iso && c.code === selected.code ? " selected" : ""}`}
+                  onClick={() => {
+                    onChange(c);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                >
+                  <span className="country-flag">{c.flag}</span>
+                  <span className="country-name">{c.name}</span>
+                  <span className="country-opt-meta">{c.iso} {c.code}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+//  PHONE INPUT — country selector + number
+// ─────────────────────────────────────────
+function PhoneInput({ countryCode, onCountryChange, localNumber, onNumberChange, hasError, placeholder }) {
+  return (
+    <div className={`phone-input-row${hasError ? " has-error" : ""}`}>
+      <CountryCodeSelector value={countryCode} onChange={onCountryChange} hasError={hasError} />
+      <input
+        type="tel"
+        value={localNumber}
+        onChange={(e) => onNumberChange(e.target.value)}
+        placeholder={placeholder || "Phone number"}
+        className={`phone-number-field${hasError ? " input-error" : ""}`}
+        autoComplete="tel-national"
+      />
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────
 //  OTP INPUT — 6 individual digit boxes
@@ -103,24 +340,25 @@ function OtpInput({ value, onChange, hasError }) {
 
 // ─────────────────────────────────────────
 //  AUTH PAGE
-//  mode: "login" | "register" | "verify"
 // ─────────────────────────────────────────
 function AuthPage({ onAuth }) {
   const [mode, setMode] = useState("login");
-  const [form, setForm] = useState({ email: "", phone: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({ email: "", password: "", confirmPassword: "" });
+  // Separate phone state
+  const [regCountry, setRegCountry] = useState(DEFAULT_COUNTRY);
+  const [regLocalPhone, setRegLocalPhone] = useState("");
+
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // OTP verification state
   const [pendingEmail, setPendingEmail] = useState("");
   const [emailOtp, setEmailOtp] = useState("");
   const [phoneOtp, setPhoneOtp] = useState("");
   const [otpErrors, setOtpErrors] = useState({});
   const [resendCooldown, setResendCooldown] = useState({ email: 0, phone: 0 });
 
-  // Cooldown timer
   useEffect(() => {
     const interval = setInterval(() => {
       setResendCooldown((c) => ({
@@ -139,41 +377,29 @@ function AuthPage({ onAuth }) {
   const validateRegisterFields = () => {
     const errs = {};
     if (!isValidEmail(form.email)) errs.email = "Enter a valid email address.";
-    if (!isValidPhone(form.phone)) errs.phone = "Enter a valid phone number with country code.";
+    if (!isValidLocalNumber(regLocalPhone)) errs.phone = "Enter a valid phone number (digits only).";
     if (form.password.length < 8) errs.password = "Password must be at least 8 characters.";
     if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match.";
     return errs;
   };
 
-  // Step 1: submit registration form → sends OTPs
-
-  
   const handleRegister = async () => {
     setError(null);
-    if (!form.email.trim() || !form.phone.trim() || !form.password) {
+    if (!form.email.trim() || !regLocalPhone.trim() || !form.password) {
       setError("All fields are required."); return;
     }
     const errs = validateRegisterFields();
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
 
-    let sanitizedPhone = form.phone.trim().replace(/[\s-]/g, "");
-    if (!sanitizedPhone.startsWith("+")) {
-      sanitizedPhone = "+" + sanitizedPhone;
-    }
+    const e164Phone = buildE164(regCountry.code, regLocalPhone);
 
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-        email: form.email.trim(), 
-        phone: sanitizedPhone, // Send the clean version
-        password: form.password 
-      }),
-    });
-
-
+        body: JSON.stringify({ email: form.email.trim(), phone: e164Phone, password: form.password }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed.");
       setPendingEmail(form.email.trim());
@@ -186,17 +412,14 @@ function AuthPage({ onAuth }) {
     }
   };
 
-  // Step 2: submit OTPs → create account
   const handleVerify = async () => {
     setError(null);
     setOtpErrors({});
     const cleanEmail = emailOtp.replace(/\s/g, "");
     const cleanPhone = phoneOtp.replace(/\s/g, "");
-
     if (cleanEmail.length < 6 || cleanPhone.length < 6) {
       setError("Enter all 6 digits of both codes."); return;
     }
-
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/verify-otp`, {
@@ -273,7 +496,9 @@ function AuthPage({ onAuth }) {
     setSuccess(null);
     setFieldErrors({});
     setOtpErrors({});
-    setForm({ email: "", phone: "", password: "", confirmPassword: "" });
+    setForm({ email: "", password: "", confirmPassword: "" });
+    setRegLocalPhone("");
+    setRegCountry(DEFAULT_COUNTRY);
     setEmailOtp("");
     setPhoneOtp("");
   };
@@ -285,7 +510,7 @@ function AuthPage({ onAuth }) {
         <div className="auth-card">
           <h2>Verify Your Identity</h2>
           <p className="auth-subtitle">
-            Codes were sent to <strong>{pendingEmail}</strong> and your phone. Enter both below.
+            Codes sent to <strong>{pendingEmail}</strong> and your phone.
           </p>
 
           {error && <p className="error">{error}</p>}
@@ -342,7 +567,7 @@ function AuthPage({ onAuth }) {
         {error && <p className="error">{error}</p>}
 
         <div className="form-group">
-          <label>Email</label>
+          <label>Email address</label>
           <input
             type="email"
             value={form.email}
@@ -360,18 +585,14 @@ function AuthPage({ onAuth }) {
 
         {mode === "register" && (
           <div className="form-group">
-            <label>Phone</label>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={setField("phone")}
-              onBlur={() => {
-                if (form.phone && !isValidPhone(form.phone))
-                  setFieldErrors((fe) => ({ ...fe, phone: "Enter a valid phone number with country code." }));
-              }}
-              placeholder="+91 98765 43210"
-              autoComplete="tel"
-              className={fieldErrors.phone ? "input-error" : ""}
+            <label>Phone number</label>
+            <PhoneInput
+              countryCode={regCountry}
+              onCountryChange={(c) => { setRegCountry(c); setFieldErrors((fe) => ({ ...fe, phone: null })); }}
+              localNumber={regLocalPhone}
+              onNumberChange={(v) => { setRegLocalPhone(v); setFieldErrors((fe) => ({ ...fe, phone: null })); }}
+              hasError={!!fieldErrors.phone}
+              placeholder="98765 43210"
             />
             {fieldErrors.phone && <span className="field-error">{fieldErrors.phone}</span>}
           </div>
@@ -392,7 +613,7 @@ function AuthPage({ onAuth }) {
 
         {mode === "register" && (
           <div className="form-group">
-            <label>Confirm Password</label>
+            <label>Confirm password</label>
             <input
               type="password"
               value={form.confirmPassword}
@@ -410,11 +631,7 @@ function AuthPage({ onAuth }) {
           onClick={mode === "login" ? handleLogin : handleRegister}
           disabled={loading}
         >
-          {loading
-            ? "Please wait..."
-            : mode === "login"
-            ? "Sign In"
-            : "Send Verification Codes"}
+          {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Send Verification Codes"}
         </button>
 
         <p className="auth-switch">
@@ -437,7 +654,15 @@ export default function StudentApp() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
+
+  // Student form fields
+  const [form, setForm] = useState({
+    name: "", age: "", course: "", rollno: "", university: "", email: "", address: "",
+  });
+  // Student phone — separate
+  const [stuCountry, setStuCountry] = useState(DEFAULT_COUNTRY);
+  const [stuLocalPhone, setStuLocalPhone] = useState("");
+
   const [activeTab, setActiveTab] = useState("list");
   const [editingStudent, setEditingStudent] = useState(null);
   const [formErrors, setFormErrors] = useState({});
@@ -455,6 +680,14 @@ export default function StudentApp() {
       .finally(() => setAuthChecked(true));
   }, []);
 
+  // Bug 1 fix: handleLogout is defined first so fetchStudents can safely
+  // depend on it via useCallback without a stale-closure risk.
+  const handleLogout = useCallback(() => {
+    clearToken();
+    setUser(null);
+    setStudents([]);
+  }, []);
+
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -469,20 +702,16 @@ export default function StudentApp() {
     } finally {
       setLoading(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleLogout]);
 
   useEffect(() => {
     if (user) fetchStudents();
   }, [user, fetchStudents]);
 
-  const handleLogout = () => {
-    clearToken();
-    setUser(null);
-    setStudents([]);
-  };
-
   const resetForm = () => {
-    setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", phone: "", address: "" });
+    setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", address: "" });
+    setStuCountry(DEFAULT_COUNTRY);
+    setStuLocalPhone("");
     setFormErrors({});
   };
 
@@ -491,10 +720,10 @@ export default function StudentApp() {
     if (!form.name.trim()) errs.name = "Name is required.";
     if (!form.age || isNaN(form.age) || Number(form.age) < 1 || Number(form.age) > 120) errs.age = "Enter a valid age (1–120).";
     if (!form.course) errs.course = "Select a course.";
-    if (!isValidRollNo(form.rollno)) errs.rollno = "Roll number must be 2–20 alphanumeric characters (hyphens and slashes allowed).";
+    if (!isValidRollNo(form.rollno)) errs.rollno = "Roll number must be 2–20 alphanumeric characters.";
     if (!form.university.trim()) errs.university = "University is required.";
     if (!isValidEmail(form.email)) errs.email = "Enter a valid email address.";
-    if (!isValidPhone(form.phone)) errs.phone = "Enter a valid phone number with country code.";
+    if (!isValidLocalNumber(stuLocalPhone)) errs.phone = "Enter a valid phone number.";
     if (!form.address.trim()) errs.address = "Address is required.";
     return errs;
   };
@@ -504,10 +733,11 @@ export default function StudentApp() {
     const errs = validateStudentForm();
     if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
     setFormErrors({});
+    const e164Phone = buildE164(stuCountry.code, stuLocalPhone);
     try {
       const res = await authFetch("/students", {
         method: "POST",
-        body: JSON.stringify({ ...form, age: Number(form.age) }),
+        body: JSON.stringify({ ...form, age: Number(form.age), phone: e164Phone }),
       });
       if (res.status === 401) { handleLogout(); return; }
       if (!res.ok) throw new Error("Failed to add student");
@@ -536,7 +766,26 @@ export default function StudentApp() {
 
   const handleEdit = (student) => {
     setEditingStudent(student);
-    setForm({ name: student.name, age: student.age, course: student.course, rollno: student.rollno, university: student.university, email: student.email, phone: student.phone, address: student.address });
+    // Parse existing E.164 phone back to country + local
+    const phone = student.phone || "";
+    let matchedCountry = DEFAULT_COUNTRY;
+    let local = phone;
+    // Try to match stored E.164 against known codes (longest match first)
+    const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+    for (const c of sorted) {
+      if (phone.startsWith(c.code)) {
+        matchedCountry = c;
+        local = phone.slice(c.code.length);
+        break;
+      }
+    }
+    setForm({
+      name: student.name, age: student.age, course: student.course,
+      rollno: student.rollno, university: student.university,
+      email: student.email, address: student.address,
+    });
+    setStuCountry(matchedCountry);
+    setStuLocalPhone(local);
     setActiveTab("add");
     setError(null);
   };
@@ -546,10 +795,11 @@ export default function StudentApp() {
     const errs = validateStudentForm();
     if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
     setFormErrors({});
+    const e164Phone = buildE164(stuCountry.code, stuLocalPhone);
     try {
       const res = await authFetch(`/students/${editingStudent._id}`, {
         method: "PUT",
-        body: JSON.stringify({ ...form, age: Number(form.age) }),
+        body: JSON.stringify({ ...form, age: Number(form.age), phone: e164Phone }),
       });
       if (res.status === 401) { handleLogout(); return; }
       if (!res.ok) throw new Error("Failed to update student");
@@ -563,13 +813,24 @@ export default function StudentApp() {
     }
   };
 
-  if (!authChecked) return <div className="app-wrapper"><p className="state-message">Loading...</p></div>;
+  const setField = (field) => (e) => {
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    setFormErrors((fe) => ({ ...fe, [field]: null }));
+  };
+
+  if (!authChecked) return (
+    <div className="app-wrapper splash">
+      <p className="state-message">Loading...</p>
+    </div>
+  );
   if (!user) return <AuthPage onAuth={(u) => setUser(u)} />;
 
   return (
     <div className="app-wrapper">
       <div className="app-header">
-        <h2>Student Registry</h2>
+        <div className="app-brand">
+          <h2>Student Registry</h2>
+        </div>
         <div className="user-bar">
           <span className="user-email">{user.email}</span>
           <button className="btn-logout" onClick={handleLogout}>Sign out</button>
@@ -577,128 +838,153 @@ export default function StudentApp() {
       </div>
 
       <div className="tabs">
-        <button onClick={() => setActiveTab("list")} disabled={activeTab === "list"}>All Students</button>
-        {" "}
         <button
+          className={activeTab === "list" ? "tab-active" : ""}
+          onClick={() => setActiveTab("list")}
+        >
+          All Students
+          {students.length > 0 && <span className="tab-count">{students.length}</span>}
+        </button>
+        <button
+          className={activeTab === "add" && !editingStudent ? "tab-active" : ""}
           onClick={() => { setEditingStudent(null); resetForm(); setActiveTab("add"); }}
-          disabled={activeTab === "add" && !editingStudent}
         >
           Add Student
         </button>
+        {editingStudent && (
+          <button className="tab-active tab-edit-indicator">
+            Editing: {editingStudent.name}
+            <span
+              className="tab-close"
+              onClick={(e) => { e.stopPropagation(); setEditingStudent(null); resetForm(); setActiveTab("list"); }}
+            >
+              ×
+            </span>
+          </button>
+        )}
       </div>
 
       {error && <p className="error">{error}</p>}
 
       {activeTab === "add" && (
         <div className="form-card">
-          <div className="form-group">
-            <label>Name</label>
-            <input type="text" value={form.name}
-              onChange={(e) => { setForm({ ...form, name: e.target.value }); setFormErrors((fe) => ({ ...fe, name: null })); }}
-              placeholder="Full name"
-              className={formErrors.name ? "input-error" : ""}
-            />
-            {formErrors.name && <span className="field-error">{formErrors.name}</span>}
+          <div className="form-section-title">
+            {editingStudent ? "Edit Student Record" : "New Student Enrollment"}
           </div>
 
-          <div className="form-group">
-            <label>Age</label>
-            <input type="number" value={form.age} min="1" max="120"
-              onChange={(e) => { setForm({ ...form, age: e.target.value }); setFormErrors((fe) => ({ ...fe, age: null })); }}
-              placeholder="Age"
-              className={formErrors.age ? "input-error" : ""}
-            />
-            {formErrors.age && <span className="field-error">{formErrors.age}</span>}
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Full Name</label>
+              <input type="text" value={form.name} onChange={setField("name")}
+                placeholder="e.g. Arjun Sharma"
+                className={formErrors.name ? "input-error" : ""}
+              />
+              {formErrors.name && <span className="field-error">{formErrors.name}</span>}
+            </div>
+
+            <div className="form-group">
+              <label>Age</label>
+              <input type="number" value={form.age} min="1" max="120"
+                onChange={setField("age")}
+                placeholder="e.g. 21"
+                className={formErrors.age ? "input-error" : ""}
+              />
+              {formErrors.age && <span className="field-error">{formErrors.age}</span>}
+            </div>
+
+            <div className="form-group">
+              <label>Course</label>
+              <select value={form.course} onChange={setField("course")}
+                className={formErrors.course ? "input-error" : ""}
+              >
+                <option value="">Select a course</option>
+                {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {formErrors.course && <span className="field-error">{formErrors.course}</span>}
+            </div>
+
+            <div className="form-group">
+              <label>Roll Number</label>
+              <input type="text" value={form.rollno}
+                onChange={(e) => { setForm({ ...form, rollno: e.target.value }); setFormErrors((fe) => ({ ...fe, rollno: null })); }}
+                onBlur={() => {
+                  if (form.rollno && !isValidRollNo(form.rollno))
+                    setFormErrors((fe) => ({ ...fe, rollno: "2–20 alphanumeric characters (hyphens and slashes allowed)." }));
+                }}
+                placeholder="e.g. CS-2024-001"
+                className={formErrors.rollno ? "input-error" : ""}
+              />
+              {formErrors.rollno && <span className="field-error">{formErrors.rollno}</span>}
+            </div>
+
+            <div className="form-group span-2">
+              <label>University</label>
+              <input type="text" value={form.university} onChange={setField("university")}
+                placeholder="e.g. Delhi University"
+                className={formErrors.university ? "input-error" : ""}
+              />
+              {formErrors.university && <span className="field-error">{formErrors.university}</span>}
+            </div>
+
+            <div className="form-group">
+              <label>Student Email</label>
+              <input type="email" value={form.email}
+                onChange={(e) => { setForm({ ...form, email: e.target.value }); setFormErrors((fe) => ({ ...fe, email: null })); }}
+                onBlur={() => {
+                  if (form.email && !isValidEmail(form.email))
+                    setFormErrors((fe) => ({ ...fe, email: "Enter a valid email address." }));
+                }}
+                placeholder="student@example.com"
+                className={formErrors.email ? "input-error" : ""}
+              />
+              {formErrors.email && <span className="field-error">{formErrors.email}</span>}
+            </div>
+
+            <div className="form-group">
+              <label>Phone Number</label>
+              <PhoneInput
+                countryCode={stuCountry}
+                onCountryChange={(c) => { setStuCountry(c); setFormErrors((fe) => ({ ...fe, phone: null })); }}
+                localNumber={stuLocalPhone}
+                onNumberChange={(v) => { setStuLocalPhone(v); setFormErrors((fe) => ({ ...fe, phone: null })); }}
+                hasError={!!formErrors.phone}
+                placeholder="98765 43210"
+              />
+              {formErrors.phone && <span className="field-error">{formErrors.phone}</span>}
+            </div>
+
+            <div className="form-group span-2">
+              <label>Address</label>
+              <input type="text" value={form.address} onChange={setField("address")}
+                placeholder="Full postal address"
+                className={formErrors.address ? "input-error" : ""}
+              />
+              {formErrors.address && <span className="field-error">{formErrors.address}</span>}
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>Course</label>
-            <select value={form.course}
-              onChange={(e) => { setForm({ ...form, course: e.target.value }); setFormErrors((fe) => ({ ...fe, course: null })); }}
-              className={formErrors.course ? "input-error" : ""}
-            >
-              <option value="">Select a course</option>
-              {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            {formErrors.course && <span className="field-error">{formErrors.course}</span>}
+          <div className="form-actions">
+            <button className="btn-ghost" onClick={() => { resetForm(); setEditingStudent(null); setActiveTab("list"); }}>
+              Cancel
+            </button>
+            <button className="btn-primary" onClick={editingStudent ? handleUpdate : handleSubmit}>
+              {editingStudent ? "Save Changes" : "Enroll Student"}
+            </button>
           </div>
-
-          <div className="form-group">
-            <label>Roll No</label>
-            <input type="text" value={form.rollno}
-              onChange={(e) => { setForm({ ...form, rollno: e.target.value }); setFormErrors((fe) => ({ ...fe, rollno: null })); }}
-              onBlur={() => {
-                if (form.rollno && !isValidRollNo(form.rollno))
-                  setFormErrors((fe) => ({ ...fe, rollno: "2–20 alphanumeric characters (hyphens and slashes allowed)." }));
-              }}
-              placeholder="e.g. CS-2024-001"
-              className={formErrors.rollno ? "input-error" : ""}
-            />
-            {formErrors.rollno && <span className="field-error">{formErrors.rollno}</span>}
-          </div>
-
-          <div className="form-group">
-            <label>University</label>
-            <input type="text" value={form.university}
-              onChange={(e) => { setForm({ ...form, university: e.target.value }); setFormErrors((fe) => ({ ...fe, university: null })); }}
-              placeholder="University name"
-              className={formErrors.university ? "input-error" : ""}
-            />
-            {formErrors.university && <span className="field-error">{formErrors.university}</span>}
-          </div>
-
-          <div className="form-group">
-            <label>Email</label>
-            <input type="email" value={form.email}
-              onChange={(e) => { setForm({ ...form, email: e.target.value }); setFormErrors((fe) => ({ ...fe, email: null })); }}
-              onBlur={() => {
-                if (form.email && !isValidEmail(form.email))
-                  setFormErrors((fe) => ({ ...fe, email: "Enter a valid email address." }));
-              }}
-              placeholder="student@example.com"
-              className={formErrors.email ? "input-error" : ""}
-            />
-            {formErrors.email && <span className="field-error">{formErrors.email}</span>}
-          </div>
-
-          <div className="form-group">
-            <label>Phone Number</label>
-            <input type="tel" value={form.phone}
-              onChange={(e) => { setForm({ ...form, phone: e.target.value }); setFormErrors((fe) => ({ ...fe, phone: null })); }}
-              onBlur={() => {
-                if (form.phone && !isValidPhone(form.phone))
-                  setFormErrors((fe) => ({ ...fe, phone: "Enter a valid phone number with country code." }));
-              }}
-              placeholder="+91 98765 43210"
-              className={formErrors.phone ? "input-error" : ""}
-            />
-            {formErrors.phone && <span className="field-error">{formErrors.phone}</span>}
-          </div>
-
-          <div className="form-group full-width">
-            <label>Address</label>
-            <input type="text" value={form.address}
-              onChange={(e) => { setForm({ ...form, address: e.target.value }); setFormErrors((fe) => ({ ...fe, address: null })); }}
-              placeholder="Full address"
-              className={formErrors.address ? "input-error" : ""}
-            />
-            {formErrors.address && <span className="field-error">{formErrors.address}</span>}
-          </div>
-
-          <button className="btn-primary" onClick={editingStudent ? handleUpdate : handleSubmit}>
-            {editingStudent ? "Update Student" : "Enroll Student"}
-          </button>
         </div>
       )}
 
       {activeTab === "list" && (
-        <div>
-          <button className="btn-secondary" onClick={fetchStudents}>Refresh</button>
+        <div className="list-section">
+          <div className="list-header">
+            <p className="list-count">
+              {students.length === 0 ? "No students enrolled yet." : `${students.length} student${students.length === 1 ? "" : "s"} enrolled`}
+            </p>
+            <button className="btn-ghost btn-sm" onClick={fetchStudents}>Refresh</button>
+          </div>
           {loading ? (
-            <p className="state-message">Loading...</p>
-          ) : students.length === 0 ? (
-            <p className="state-message">No students enrolled yet.</p>
-          ) : (
+            <p className="state-message">Loading students...</p>
+          ) : students.length === 0 ? null : (
             <div className="table-wrapper">
               <table>
                 <thead>
@@ -712,25 +998,26 @@ export default function StudentApp() {
                     <th>Email</th>
                     <th>Phone</th>
                     <th>Address</th>
-                    <th>Action</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {students.map((s, i) => (
                     <tr key={s._id || i}>
-                      <td>{i + 1}</td>
-                      <td>{s.name}</td>
+                      <td className="td-index">{i + 1}</td>
+                      <td className="td-name">{s.name}</td>
                       <td>{s.age}</td>
-                      <td>{s.course}</td>
-                      <td>{s.rollno}</td>
+                      <td><span className="course-pill">{s.course}</span></td>
+                      <td className="td-mono">{s.rollno}</td>
                       <td>{s.university}</td>
-                      <td>{s.email}</td>
-                      <td>{s.phone}</td>
-                      <td>{s.address}</td>
+                      <td className="td-email">{s.email}</td>
+                      <td className="td-mono">{s.phone}</td>
+                      <td className="td-address">{s.address}</td>
                       <td>
-                        <button className="btn-edit" onClick={() => handleEdit(s)}>Edit</button>
-                        {" "}
-                        <button className="btn-delete" onClick={() => handleDelete(s._id)}>Delete</button>
+                        <div className="action-btns">
+                          <button className="btn-edit" onClick={() => handleEdit(s)}>Edit</button>
+                          <button className="btn-delete" onClick={() => handleDelete(s._id)}>Delete</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
