@@ -10,7 +10,8 @@ A full-stack MERN application for managing student records, with per-user authen
 
 ### Authentication & Security
 * **JWT-Based Sessions:** Secure, stateless user sessions using JSON Web Tokens.
-* **Dual Two-Factor Authentication (2FA):** * Requires both **Email OTP** (via Nodemailer) and **SMS OTP** (via Twilio) during registration.
+* **Dual Two-Factor Authentication (2FA):**
+    * Requires both **Email OTP** (via Nodemailer) and **SMS OTP** (via Twilio) during registration.
     * Requires an Email OTP step during the login process.
 * **Timing-Attack Prevention:** Uses dummy password hashing checks during login if an email isn't found, preventing malicious actors from enumerating valid email addresses.
 * **Rate Limiting:** Protects all authentication and OTP endpoints (`express-rate-limit`) against brute-force attacks and spam.
