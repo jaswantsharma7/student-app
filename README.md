@@ -18,7 +18,8 @@ A full-stack MERN application for managing student records, with per-user authen
 
 ### Data Integrity & Validation
 * **E.164 Phone Normalization:** A custom backend algorithm that sanitizes international phone numbers, ensuring that variations like `+91 0845...` and `+91 845...` are collapsed into a single, canonical database entry.
-* **Dual-Layer Validation:** * **Frontend:** Immediate feedback for valid emails, phone lengths, roll number formats, and age limits before submission.
+* **Dual-Layer Validation:**
+    * **Frontend:** Immediate feedback for valid emails, phone lengths, roll number formats, and age limits before submission.
     * **Backend:** Strict Mongoose schema validation to ensure no bad data reaches the database.
 
 ### Student Management (CRUD)
