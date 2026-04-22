@@ -8,14 +8,29 @@ A full-stack MERN application for managing student records, with per-user authen
 
 ## Features
 
-- Register with email + phone + password
-- Email OTP sent via Gmail, SMS OTP sent via Twilio — both must be verified to create an account
-- 6-digit OTP boxes with paste support, per-attempt lockout (5 attempts), and 10-minute expiry
-- 60-second resend cooldown with individual resend buttons for email and SMS
-- JWT authentication — sessions survive page reloads, expire after 7 days
-- Passwords hashed with bcrypt (12 rounds), OTPs hashed with bcrypt (8 rounds)
-- Each user has their own isolated student list
-- Full CRUD: add, view, edit, delete students with format validation
+### Authentication & Security
+* **JWT-Based Sessions:** Secure, stateless user sessions using JSON Web Tokens.
+* **Dual Two-Factor Authentication (2FA):** * Requires both **Email OTP** (via Nodemailer) and **SMS OTP** (via Twilio) during registration.
+    * Requires an Email OTP step during the login process.
+* **Timing-Attack Prevention:** Uses dummy password hashing checks during login if an email isn't found, preventing malicious actors from enumerating valid email addresses.
+* **Rate Limiting:** Protects all authentication and OTP endpoints (`express-rate-limit`) against brute-force attacks and spam.
+* **Atomic Database Operations:** Uses MongoDB's `upsert` and `$set` during registration to prevent race conditions and duplicate pending users.
+
+### Data Integrity & Validation
+* **E.164 Phone Normalization:** A custom backend algorithm that sanitizes international phone numbers, ensuring that variations like `+91 0845...` and `+91 845...` are collapsed into a single, canonical database entry.
+* **Dual-Layer Validation:** * **Frontend:** Immediate feedback for valid emails, phone lengths, roll number formats, and age limits before submission.
+    * **Backend:** Strict Mongoose schema validation to ensure no bad data reaches the database.
+
+### Student Management (CRUD)
+* **Isolated Workspaces:** Every student record is tied securely to the authenticated user's `userId`. Users can only see and modify their own enrolled students.
+* **Comprehensive Records:** Captures detailed student information including Full Name, Age, Course, Roll Number, University, Email, Phone, and Address.
+* **Full CRUD Capabilities:** Users can seamlessly Add, View, Edit, and Delete student records.
+
+### Frontend & UI/UX Features
+* **Smart Search & Filtering:** A robust search bar allows users to filter the student list globally (all fields) or target specific columns (e.g., searching only by "Roll No" or "Course").
+* **Custom OTP Component:** A user-friendly 6-digit input box that supports auto-focusing on the next box, backspacing, and native clipboard pasting.
+* **International Phone Input:** A custom dropdown component featuring flags, country names, and dial codes to easily select and format international phone numbers.
+* **Responsive Tabbed Interface:** A clean, single-page application feel that switches smoothly between the "List Students" view and the "Add/Edit Student" forms.
 
 ---
 
@@ -26,29 +41,59 @@ A full-stack MERN application for managing student records, with per-user authen
 | Frontend | React.js (Vercel) |
 | Backend | Node.js + Express.js (Render) |
 | Database | MongoDB Atlas |
-| Auth | JWT + bcryptjs |
+| Auth | JWT + bcryptjs + express-rate-limiter + cors |
 | Email OTP | Nodemailer + Gmail SMTP |
 | SMS OTP | Twilio |
+| Environment & Utilities | dotenv |
 
 ---
 
 ## Project Structure
 
 ```
-student-app/
-├── backend/
-│   ├── server.js
+/student-registry-app
+├── /backend
+│   ├── /config
+│   │   ├── db.js
+│   │   └── corsConfig.js
+│   ├── /middlewares
+│   │   ├── authMiddleware.js
+│   │   └── rateLimiters.js
+│   ├── /models
+│   │   ├── OTP.js
+│   │   ├── PendingUser.js
+│   │   ├── Student.js
+│   │   └── User.js
+│   ├── /routes
+│   │   ├── authRoutes.js
+│   │   └── studentRoutes.js
+│   ├── /services
+│   │   ├── otpService.js
+│   │   └── phoneNormalizer.js
+│   ├── /utils
+│   │   └── helpers.js
+│   ├── .env
 │   ├── package.json
-│   └── .env.example
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── App.js
+│   └── server.js
+├── /frontend
+│   ├── /public
+│   |   └── index.html
+│   ├── /src
+│   │   ├── /components
+│   │   │   ├── AuthPage.js
+│   │   │   ├── CountryCodeSelector.js
+│   │   │   ├── OtpInput.js
+│   │   │   ├── PhoneInput.js
+│   │   │   └── SearchBar.js
+│   │   ├── /utils
+│   │   │   ├── api.js
+│   │   │   ├── constants.js
+│   │   │   └── validators.js
 │   │   ├── App.css
-│   │   ├── index.js
-│   │   └── index.css
-│   ├── package.json
-│   └── .env.example
+│   │   ├── App.js
+│   │   └── index.js
+│   ├── .env
+│   └── package.json
 ├── .gitignore
 └── README.md
 ```
@@ -194,6 +239,7 @@ User is signed in
 | POST | `/auth/verify-otp` | `{ email, emailOtp, phoneOtp }` | Verify both OTPs; create account; return JWT |
 | POST | `/auth/resend-otp` | `{ email, type }` | Resend one OTP (`type`: `"email"` or `"phone"`) |
 | POST | `/auth/login` | `{ email, password }` | Sign in; return JWT |
+| POST | `/auth/login-verify` | `{ email, otp}` | Verify Login 2FA and return JWT |
 | GET | `/auth/me` | — (Bearer token) | Verify token; return user info |
 
 ### Students (all require `Authorization: Bearer <token>`)
@@ -218,6 +264,6 @@ User is signed in
 - All student routes verify ownership — users cannot access each other's data
 - CORS is restricted to the `ALLOWED_ORIGINS` list
 - `userId` is never exposed in API responses
-- Input is passed through an allowlist on the backend to prevent mass assignment
-- Never commit `.env` to version control
 
+## License
+This project is licensed under the MIT License. Feel free to use, modify, and distribute it as per the terms of the license.
