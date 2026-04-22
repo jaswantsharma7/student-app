@@ -1,5 +1,5 @@
 import "./App.css";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 const API_BASE = process.env.REACT_APP_API_URL;
 
@@ -118,29 +118,39 @@ const COUNTRY_CODES = [
   { code: "+993", iso: "TM", name: "Turkmenistan", flag: "🇹🇲" },
 ];
 
-// Default: India +91
 const DEFAULT_COUNTRY = COUNTRY_CODES[0];
 
-// ── Phone state helper ──
-// Returns E.164: countryCode + localNumber (digits only)
+// ── Phone helpers ──
+// Strip leading zeros from the local number before sending to backend.
+// The backend does a full E.164 normalisation, but this keeps the UI consistent.
 const buildE164 = (countryCode, localNumber) => {
-  const digits = localNumber.replace(/\D/g, "");
+  const digits = localNumber.replace(/\D/g, "").replace(/^0+/, "");
   return `${countryCode}${digits}`;
 };
 
+// ── Search filter options ──
+const SEARCH_FIELDS = [
+  { value: "all",        label: "All fields"  },
+  { value: "name",       label: "Name"        },
+  { value: "course",     label: "Course"      },
+  { value: "rollno",     label: "Roll No"     },
+  { value: "university", label: "University"  },
+  { value: "email",      label: "Email"       },
+  { value: "phone",      label: "Phone"       },
+  { value: "address",    label: "Address"     },
+];
+
 // ── Validation helpers ──
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
-
 const isValidLocalNumber = (v) => {
-  const digits = v.replace(/\D/g, "");
+  const digits = v.replace(/\D/g, "").replace(/^0+/, "");
   return digits.length >= 6 && digits.length <= 13;
 };
-
 const isValidRollNo = (v) => /^[A-Za-z0-9\-/]{2,20}$/.test(v.trim());
 
 // ── Token helpers ──
-const getToken = () => localStorage.getItem("auth_token");
-const setToken = (t) => localStorage.setItem("auth_token", t);
+const getToken  = () => localStorage.getItem("auth_token");
+const setToken  = (t) => localStorage.setItem("auth_token", t);
 const clearToken = () => localStorage.removeItem("auth_token");
 
 // ── Authenticated fetch ──
@@ -163,7 +173,7 @@ function CountryCodeSelector({ value, onChange, hasError }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const dropdownRef = useRef(null);
-  const searchRef = useRef(null);
+  const searchRef   = useRef(null);
 
   const selected = COUNTRY_CODES.find(
     (c) => c.iso === value.iso && c.code === value.code
@@ -237,11 +247,7 @@ function CountryCodeSelector({ value, onChange, hasError }) {
                   role="option"
                   aria-selected={c.iso === selected.iso && c.code === selected.code}
                   className={`country-option${c.iso === selected.iso && c.code === selected.code ? " selected" : ""}`}
-                  onClick={() => {
-                    onChange(c);
-                    setOpen(false);
-                    setSearch("");
-                  }}
+                  onClick={() => { onChange(c); setOpen(false); setSearch(""); }}
                 >
                   <span className="country-flag">{c.flag}</span>
                   <span className="country-name">{c.name}</span>
@@ -257,7 +263,7 @@ function CountryCodeSelector({ value, onChange, hasError }) {
 }
 
 // ─────────────────────────────────────────
-//  PHONE INPUT — country selector + number
+//  PHONE INPUT
 // ─────────────────────────────────────────
 function PhoneInput({ countryCode, onCountryChange, localNumber, onNumberChange, hasError, placeholder }) {
   return (
@@ -276,27 +282,25 @@ function PhoneInput({ countryCode, onCountryChange, localNumber, onNumberChange,
 }
 
 // ─────────────────────────────────────────
-//  OTP INPUT — 6 individual digit boxes
+//  OTP INPUT — 6 digit boxes
 // ─────────────────────────────────────────
 function OtpInput({ value, onChange, hasError }) {
   const inputs = useRef([]);
-  const digits = (value || "      ").split("").concat(Array(6).fill(" ")).slice(0, 6);
+  const digits  = (value || "      ").split("").concat(Array(6).fill(" ")).slice(0, 6);
 
   const handleKey = (i, e) => {
     if (e.key === "Backspace") {
       e.preventDefault();
       const arr = value.split("");
       if (arr[i] && arr[i].trim()) {
-        arr[i] = "";
-        onChange(arr.join(""));
+        arr[i] = ""; onChange(arr.join(""));
       } else if (i > 0) {
-        arr[i - 1] = "";
-        onChange(arr.join(""));
+        arr[i - 1] = ""; onChange(arr.join(""));
         inputs.current[i - 1]?.focus();
       }
       return;
     }
-    if (e.key === "ArrowLeft" && i > 0) { inputs.current[i - 1]?.focus(); return; }
+    if (e.key === "ArrowLeft"  && i > 0) { inputs.current[i - 1]?.focus(); return; }
     if (e.key === "ArrowRight" && i < 5) { inputs.current[i + 1]?.focus(); return; }
   };
 
@@ -313,8 +317,7 @@ function OtpInput({ value, onChange, hasError }) {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     onChange(pasted.padEnd(6, "").slice(0, 6));
-    const nextFocus = Math.min(pasted.length, 5);
-    inputs.current[nextFocus]?.focus();
+    inputs.current[Math.min(pasted.length, 5)]?.focus();
   };
 
   return (
@@ -340,30 +343,38 @@ function OtpInput({ value, onChange, hasError }) {
 
 // ─────────────────────────────────────────
 //  AUTH PAGE
+//  mode: "login" | "login2fa" | "register" | "verify"
 // ─────────────────────────────────────────
 function AuthPage({ onAuth }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email: "", password: "", confirmPassword: "" });
-  // Separate phone state
-  const [regCountry, setRegCountry] = useState(DEFAULT_COUNTRY);
+  const [regCountry, setRegCountry]   = useState(DEFAULT_COUNTRY);
   const [regLocalPhone, setRegLocalPhone] = useState("");
 
   const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState(null);
+  const [error,   setError]   = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Registration OTP
   const [pendingEmail, setPendingEmail] = useState("");
   const [emailOtp, setEmailOtp] = useState("");
   const [phoneOtp, setPhoneOtp] = useState("");
   const [otpErrors, setOtpErrors] = useState({});
-  const [resendCooldown, setResendCooldown] = useState({ email: 0, phone: 0 });
+
+  // Login 2FA
+  const [login2faEmail, setLogin2faEmail] = useState("");
+  const [loginOtp,  setLoginOtp]  = useState("");
+  const [loginOtpError, setLoginOtpError] = useState(null);
+
+  const [resendCooldown, setResendCooldown] = useState({ email: 0, phone: 0, login: 0 });
 
   useEffect(() => {
     const interval = setInterval(() => {
       setResendCooldown((c) => ({
         email: c.email > 0 ? c.email - 1 : 0,
         phone: c.phone > 0 ? c.phone - 1 : 0,
+        login: c.login > 0 ? c.login - 1 : 0,
       }));
     }, 1000);
     return () => clearInterval(interval);
@@ -376,13 +387,14 @@ function AuthPage({ onAuth }) {
 
   const validateRegisterFields = () => {
     const errs = {};
-    if (!isValidEmail(form.email)) errs.email = "Enter a valid email address.";
-    if (!isValidLocalNumber(regLocalPhone)) errs.phone = "Enter a valid phone number (digits only).";
-    if (form.password.length < 8) errs.password = "Password must be at least 8 characters.";
+    if (!isValidEmail(form.email))            errs.email           = "Enter a valid email address.";
+    if (!isValidLocalNumber(regLocalPhone))   errs.phone           = "Enter a valid phone number (6–13 digits).";
+    if (form.password.length < 8)             errs.password        = "Password must be at least 8 characters.";
     if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match.";
     return errs;
   };
 
+  // ── Register Step 1 ──
   const handleRegister = async () => {
     setError(null);
     if (!form.email.trim() || !regLocalPhone.trim() || !form.password) {
@@ -392,10 +404,9 @@ function AuthPage({ onAuth }) {
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
 
     const e164Phone = buildE164(regCountry.code, regLocalPhone);
-
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
+      const res  = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email.trim(), phone: e164Phone, password: form.password }),
@@ -403,7 +414,7 @@ function AuthPage({ onAuth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed.");
       setPendingEmail(form.email.trim());
-      setResendCooldown({ email: 60, phone: 60 });
+      setResendCooldown((c) => ({ ...c, email: 60, phone: 60 }));
       setMode("verify");
     } catch (err) {
       setError(err.message);
@@ -412,9 +423,9 @@ function AuthPage({ onAuth }) {
     }
   };
 
+  // ── Register Step 2 — verify both OTPs ──
   const handleVerify = async () => {
-    setError(null);
-    setOtpErrors({});
+    setError(null); setOtpErrors({});
     const cleanEmail = emailOtp.replace(/\s/g, "");
     const cleanPhone = phoneOtp.replace(/\s/g, "");
     if (cleanEmail.length < 6 || cleanPhone.length < 6) {
@@ -422,7 +433,7 @@ function AuthPage({ onAuth }) {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+      const res  = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: pendingEmail, emailOtp: cleanEmail, phoneOtp: cleanPhone }),
@@ -443,6 +454,7 @@ function AuthPage({ onAuth }) {
     }
   };
 
+  // ── Login Step 1 — password ──
   const handleLogin = async () => {
     setError(null);
     if (!form.email.trim() || !form.password) {
@@ -453,15 +465,17 @@ function AuthPage({ onAuth }) {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res  = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email.trim(), password: form.password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed.");
-      setToken(data.token);
-      onAuth(data.user);
+      // Backend returns { pending2fa: true, email }
+      setLogin2faEmail(data.email);
+      setResendCooldown((c) => ({ ...c, login: 60 }));
+      setMode("login2fa");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -469,12 +483,53 @@ function AuthPage({ onAuth }) {
     }
   };
 
+  // ── Login Step 2 — email OTP ──
+  const handleLogin2fa = async () => {
+    setLoginOtpError(null);
+    const clean = loginOtp.replace(/\s/g, "");
+    if (clean.length < 6) { setLoginOtpError("Enter all 6 digits."); return; }
+    setLoading(true);
+    try {
+      const res  = await fetch(`${API_BASE}/auth/login-verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: login2faEmail, otp: clean }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setLoginOtpError(data.error || "Verification failed."); return; }
+      setToken(data.token);
+      onAuth(data.user);
+    } catch (err) {
+      setLoginOtpError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendLogin = async () => {
+    if (resendCooldown.login > 0) return;
+    setError(null); setSuccess(null);
+    try {
+      const res  = await fetch(`${API_BASE}/auth/login-resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: login2faEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not resend code.");
+      setSuccess(data.message);
+      setResendCooldown((c) => ({ ...c, login: 60 }));
+      setLoginOtp("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleResend = async (type) => {
     if (resendCooldown[type] > 0) return;
-    setError(null);
-    setSuccess(null);
+    setError(null); setSuccess(null);
     try {
-      const res = await fetch(`${API_BASE}/auth/resend-otp`, {
+      const res  = await fetch(`${API_BASE}/auth/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: pendingEmail, type }),
@@ -483,27 +538,63 @@ function AuthPage({ onAuth }) {
       if (!res.ok) throw new Error(data.error || "Could not resend code.");
       setSuccess(data.message);
       setResendCooldown((c) => ({ ...c, [type]: 60 }));
-      if (type === "email") setEmailOtp("");
-      else setPhoneOtp("");
+      if (type === "email") setEmailOtp(""); else setPhoneOtp("");
     } catch (err) {
       setError(err.message);
     }
   };
 
   const switchMode = (next) => {
-    setMode(next);
-    setError(null);
-    setSuccess(null);
-    setFieldErrors({});
-    setOtpErrors({});
+    setMode(next); setError(null); setSuccess(null);
+    setFieldErrors({}); setOtpErrors({});
     setForm({ email: "", password: "", confirmPassword: "" });
-    setRegLocalPhone("");
-    setRegCountry(DEFAULT_COUNTRY);
-    setEmailOtp("");
-    setPhoneOtp("");
+    setRegLocalPhone(""); setRegCountry(DEFAULT_COUNTRY);
+    setEmailOtp(""); setPhoneOtp(""); setLoginOtp("");
+    setLoginOtpError(null);
   };
 
-  // ── Verify OTP screen ──
+  // ── Login 2FA screen ──
+  if (mode === "login2fa") {
+    return (
+      <div className="auth-wrapper">
+        <div className="auth-card">
+          <h2>Check Your Email</h2>
+          <p className="auth-subtitle">
+            A sign-in code was sent to <strong>{login2faEmail}</strong>. Enter it below to continue.
+          </p>
+
+          {error   && <p className="error">{error}</p>}
+          {success && <p className="success-msg">{success}</p>}
+
+          <div className="form-group">
+            <label>Sign-in verification code</label>
+            <OtpInput value={loginOtp} onChange={setLoginOtp} hasError={!!loginOtpError} />
+            {loginOtpError && <span className="field-error">{loginOtpError}</span>}
+            <button
+              className="link-btn resend-btn"
+              onClick={handleResendLogin}
+              disabled={resendCooldown.login > 0}
+            >
+              {resendCooldown.login > 0
+                ? `Resend code (${resendCooldown.login}s)`
+                : "Resend code"}
+            </button>
+          </div>
+
+          <button className="btn-primary auth-btn" onClick={handleLogin2fa} disabled={loading}>
+            {loading ? "Verifying..." : "Confirm Sign In"}
+          </button>
+
+          <p className="auth-switch">
+            Wrong account?{" "}
+            <button className="link-btn" onClick={() => switchMode("login")}>Go back</button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Registration verify screen ──
   if (mode === "verify") {
     return (
       <div className="auth-wrapper">
@@ -513,18 +604,14 @@ function AuthPage({ onAuth }) {
             Codes sent to <strong>{pendingEmail}</strong> and your phone.
           </p>
 
-          {error && <p className="error">{error}</p>}
+          {error   && <p className="error">{error}</p>}
           {success && <p className="success-msg">{success}</p>}
 
           <div className="form-group">
             <label>Email verification code</label>
             <OtpInput value={emailOtp} onChange={setEmailOtp} hasError={!!otpErrors.emailOtp} />
             {otpErrors.emailOtp && <span className="field-error">{otpErrors.emailOtp}</span>}
-            <button
-              className="link-btn resend-btn"
-              onClick={() => handleResend("email")}
-              disabled={resendCooldown.email > 0}
-            >
+            <button className="link-btn resend-btn" onClick={() => handleResend("email")} disabled={resendCooldown.email > 0}>
               {resendCooldown.email > 0 ? `Resend email code (${resendCooldown.email}s)` : "Resend email code"}
             </button>
           </div>
@@ -533,11 +620,7 @@ function AuthPage({ onAuth }) {
             <label>SMS verification code</label>
             <OtpInput value={phoneOtp} onChange={setPhoneOtp} hasError={!!otpErrors.phoneOtp} />
             {otpErrors.phoneOtp && <span className="field-error">{otpErrors.phoneOtp}</span>}
-            <button
-              className="link-btn resend-btn"
-              onClick={() => handleResend("phone")}
-              disabled={resendCooldown.phone > 0}
-            >
+            <button className="link-btn resend-btn" onClick={() => handleResend("phone")} disabled={resendCooldown.phone > 0}>
               {resendCooldown.phone > 0 ? `Resend SMS code (${resendCooldown.phone}s)` : "Resend SMS code"}
             </button>
           </div>
@@ -569,15 +652,12 @@ function AuthPage({ onAuth }) {
         <div className="form-group">
           <label>Email address</label>
           <input
-            type="email"
-            value={form.email}
-            onChange={setField("email")}
+            type="email" value={form.email} onChange={setField("email")}
             onBlur={() => {
               if (form.email && !isValidEmail(form.email))
                 setFieldErrors((fe) => ({ ...fe, email: "Enter a valid email address." }));
             }}
-            placeholder="you@example.com"
-            autoComplete="email"
+            placeholder="you@example.com" autoComplete="email"
             className={fieldErrors.email ? "input-error" : ""}
           />
           {fieldErrors.email && <span className="field-error">{fieldErrors.email}</span>}
@@ -601,9 +681,7 @@ function AuthPage({ onAuth }) {
         <div className="form-group">
           <label>Password</label>
           <input
-            type="password"
-            value={form.password}
-            onChange={setField("password")}
+            type="password" value={form.password} onChange={setField("password")}
             placeholder={mode === "register" ? "Min. 8 characters" : "Your password"}
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             className={fieldErrors.password ? "input-error" : ""}
@@ -615,11 +693,8 @@ function AuthPage({ onAuth }) {
           <div className="form-group">
             <label>Confirm password</label>
             <input
-              type="password"
-              value={form.confirmPassword}
-              onChange={setField("confirmPassword")}
-              placeholder="Repeat password"
-              autoComplete="new-password"
+              type="password" value={form.confirmPassword} onChange={setField("confirmPassword")}
+              placeholder="Repeat password" autoComplete="new-password"
               className={fieldErrors.confirmPassword ? "input-error" : ""}
             />
             {fieldErrors.confirmPassword && <span className="field-error">{fieldErrors.confirmPassword}</span>}
@@ -646,57 +721,132 @@ function AuthPage({ onAuth }) {
 }
 
 // ─────────────────────────────────────────
+//  SEARCH BAR + FILTER
+// ─────────────────────────────────────────
+function SearchBar({ query, onQuery, filterField, onFilter }) {
+  const filterRef  = useRef(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const selectedLabel = SEARCH_FIELDS.find((f) => f.value === filterField)?.label || "All fields";
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div className="search-bar-wrap">
+      {/* Filter dropdown */}
+      <div className="search-filter-wrap" ref={filterRef}>
+        <button
+          type="button"
+          className="search-filter-btn"
+          onClick={() => setFilterOpen((o) => !o)}
+          aria-haspopup="listbox"
+          aria-expanded={filterOpen}
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M1 2.5h11M3 6.5h7M5 10.5h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+          <span>{selectedLabel}</span>
+          <svg className={`chevron${filterOpen ? " open" : ""}`} width="11" height="11" viewBox="0 0 12 12" fill="none">
+            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+
+        {filterOpen && (
+          <div className="search-filter-dropdown" role="listbox">
+            {SEARCH_FIELDS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                role="option"
+                aria-selected={f.value === filterField}
+                className={`search-filter-option${f.value === filterField ? " selected" : ""}`}
+                onClick={() => { onFilter(f.value); setFilterOpen(false); }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Search input */}
+      <div className="search-input-wrap">
+        <svg className="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.4"/>
+          <path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        </svg>
+        <input
+          type="text"
+          className="search-input"
+          placeholder={`Search by ${selectedLabel.toLowerCase()}...`}
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          autoComplete="off"
+          spellCheck="false"
+        />
+        {query && (
+          <button className="search-clear" type="button" onClick={() => onQuery("")} aria-label="Clear search">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
 //  MAIN APP
 // ─────────────────────────────────────────
 export default function StudentApp() {
-  const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [user,         setUser]         = useState(null);
+  const [authChecked,  setAuthChecked]  = useState(false);
+  const [students,     setStudents]     = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
 
-  // Student form fields
   const [form, setForm] = useState({
     name: "", age: "", course: "", rollno: "", university: "", email: "", address: "",
   });
-  // Student phone — separate
-  const [stuCountry, setStuCountry] = useState(DEFAULT_COUNTRY);
-  const [stuLocalPhone, setStuLocalPhone] = useState("");
+  const [stuCountry,   setStuCountry]   = useState(DEFAULT_COUNTRY);
+  const [stuLocalPhone,setStuLocalPhone]= useState("");
 
-  const [activeTab, setActiveTab] = useState("list");
-  const [editingStudent, setEditingStudent] = useState(null);
-  const [formErrors, setFormErrors] = useState({});
+  const [activeTab,       setActiveTab]       = useState("list");
+  const [editingStudent,  setEditingStudent]  = useState(null);
+  const [formErrors,      setFormErrors]      = useState({});
+
+  // Search state
+  const [searchQuery,   setSearchQuery]   = useState("");
+  const [searchField,   setSearchField]   = useState("all");
 
   useEffect(() => {
     const token = getToken();
     if (!token) { setAuthChecked(true); return; }
     authFetch("/auth/me")
       .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data?.user) setUser(data.user);
-        else clearToken();
-      })
+      .then((data) => { if (data?.user) setUser(data.user); else clearToken(); })
       .catch(() => clearToken())
       .finally(() => setAuthChecked(true));
   }, []);
 
-  // Bug 1 fix: handleLogout is defined first so fetchStudents can safely
-  // depend on it via useCallback without a stale-closure risk.
   const handleLogout = useCallback(() => {
-    clearToken();
-    setUser(null);
-    setStudents([]);
+    clearToken(); setUser(null); setStudents([]);
   }, []);
 
   const fetchStudents = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const res = await authFetch("/students");
       if (res.status === 401) { handleLogout(); return; }
       if (!res.ok) throw new Error("Failed to fetch students");
-      const data = await res.json();
-      setStudents(data);
+      setStudents(await res.json());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -704,27 +854,23 @@ export default function StudentApp() {
     }
   }, [handleLogout]);
 
-  useEffect(() => {
-    if (user) fetchStudents();
-  }, [user, fetchStudents]);
+  useEffect(() => { if (user) fetchStudents(); }, [user, fetchStudents]);
 
   const resetForm = () => {
     setForm({ name: "", age: "", course: "", rollno: "", university: "", email: "", address: "" });
-    setStuCountry(DEFAULT_COUNTRY);
-    setStuLocalPhone("");
-    setFormErrors({});
+    setStuCountry(DEFAULT_COUNTRY); setStuLocalPhone(""); setFormErrors({});
   };
 
   const validateStudentForm = () => {
     const errs = {};
-    if (!form.name.trim()) errs.name = "Name is required.";
+    if (!form.name.trim())                                              errs.name       = "Name is required.";
     if (!form.age || isNaN(form.age) || Number(form.age) < 1 || Number(form.age) > 120) errs.age = "Enter a valid age (1–120).";
-    if (!form.course) errs.course = "Select a course.";
-    if (!isValidRollNo(form.rollno)) errs.rollno = "Roll number must be 2–20 alphanumeric characters.";
-    if (!form.university.trim()) errs.university = "University is required.";
-    if (!isValidEmail(form.email)) errs.email = "Enter a valid email address.";
-    if (!isValidLocalNumber(stuLocalPhone)) errs.phone = "Enter a valid phone number.";
-    if (!form.address.trim()) errs.address = "Address is required.";
+    if (!form.course)                                                   errs.course     = "Select a course.";
+    if (!isValidRollNo(form.rollno))                                    errs.rollno     = "Roll number must be 2–20 alphanumeric characters.";
+    if (!form.university.trim())                                        errs.university = "University is required.";
+    if (!isValidEmail(form.email))                                      errs.email      = "Enter a valid email address.";
+    if (!isValidLocalNumber(stuLocalPhone))                             errs.phone      = "Enter a valid phone number.";
+    if (!form.address.trim())                                           errs.address    = "Address is required.";
     return errs;
   };
 
@@ -740,11 +886,15 @@ export default function StudentApp() {
         body: JSON.stringify({ ...form, age: Number(form.age), phone: e164Phone }),
       });
       if (res.status === 401) { handleLogout(); return; }
-      if (!res.ok) throw new Error("Failed to add student");
-      const newStudent = await res.json();
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to add student");
+      }
+      const newStudent = await res.json().catch(() => ({}));
       setStudents((prev) => [newStudent, ...prev]);
-      resetForm();
-      setActiveTab("list");
+      // Re-fetch to get the server-canonical record
+      await fetchStudents();
+      resetForm(); setActiveTab("list");
     } catch (err) {
       setError(err.message);
     }
@@ -754,7 +904,7 @@ export default function StudentApp() {
     setError(null);
     if (!id) { setError("Invalid student ID."); return; }
     try {
-      const res = await authFetch(`/students/${id}`, { method: "DELETE" });
+      const res  = await authFetch(`/students/${id}`, { method: "DELETE" });
       if (res.status === 401) { handleLogout(); return; }
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || "Failed to delete student");
@@ -766,11 +916,9 @@ export default function StudentApp() {
 
   const handleEdit = (student) => {
     setEditingStudent(student);
-    // Parse existing E.164 phone back to country + local
-    const phone = student.phone || "";
+    const phone  = student.phone || "";
     let matchedCountry = DEFAULT_COUNTRY;
     let local = phone;
-    // Try to match stored E.164 against known codes (longest match first)
     const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
     for (const c of sorted) {
       if (phone.startsWith(c.code)) {
@@ -784,10 +932,8 @@ export default function StudentApp() {
       rollno: student.rollno, university: student.university,
       email: student.email, address: student.address,
     });
-    setStuCountry(matchedCountry);
-    setStuLocalPhone(local);
-    setActiveTab("add");
-    setError(null);
+    setStuCountry(matchedCountry); setStuLocalPhone(local);
+    setActiveTab("add"); setError(null);
   };
 
   const handleUpdate = async () => {
@@ -802,12 +948,13 @@ export default function StudentApp() {
         body: JSON.stringify({ ...form, age: Number(form.age), phone: e164Phone }),
       });
       if (res.status === 401) { handleLogout(); return; }
-      if (!res.ok) throw new Error("Failed to update student");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to update student");
+      }
       const updatedStudent = await res.json();
       setStudents((prev) => prev.map((s) => s._id === updatedStudent._id ? updatedStudent : s));
-      setEditingStudent(null);
-      resetForm();
-      setActiveTab("list");
+      setEditingStudent(null); resetForm(); setActiveTab("list");
     } catch (err) {
       setError(err.message);
     }
@@ -817,6 +964,28 @@ export default function StudentApp() {
     setForm((f) => ({ ...f, [field]: e.target.value }));
     setFormErrors((fe) => ({ ...fe, [field]: null }));
   };
+
+  // ── Filtered student list ──
+  const filteredStudents = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((s) => {
+      if (searchField === "all") {
+        return (
+          s.name?.toLowerCase().includes(q) ||
+          s.course?.toLowerCase().includes(q) ||
+          s.rollno?.toLowerCase().includes(q) ||
+          s.university?.toLowerCase().includes(q) ||
+          s.email?.toLowerCase().includes(q) ||
+          s.phone?.toLowerCase().includes(q) ||
+          s.address?.toLowerCase().includes(q) ||
+          String(s.age).includes(q)
+        );
+      }
+      const val = String(s[searchField] ?? "").toLowerCase();
+      return val.includes(q);
+    });
+  }, [students, searchQuery, searchField]);
 
   if (!authChecked) return (
     <div className="app-wrapper splash">
@@ -857,9 +1026,7 @@ export default function StudentApp() {
             <span
               className="tab-close"
               onClick={(e) => { e.stopPropagation(); setEditingStudent(null); resetForm(); setActiveTab("list"); }}
-            >
-              ×
-            </span>
+            >×</span>
           </button>
         )}
       </div>
@@ -876,27 +1043,22 @@ export default function StudentApp() {
             <div className="form-group">
               <label>Full Name</label>
               <input type="text" value={form.name} onChange={setField("name")}
-                placeholder="e.g. Arjun Sharma"
-                className={formErrors.name ? "input-error" : ""}
+                placeholder="e.g. Arjun Sharma" className={formErrors.name ? "input-error" : ""}
               />
               {formErrors.name && <span className="field-error">{formErrors.name}</span>}
             </div>
 
             <div className="form-group">
               <label>Age</label>
-              <input type="number" value={form.age} min="1" max="120"
-                onChange={setField("age")}
-                placeholder="e.g. 21"
-                className={formErrors.age ? "input-error" : ""}
+              <input type="number" value={form.age} min="1" max="120" onChange={setField("age")}
+                placeholder="e.g. 21" className={formErrors.age ? "input-error" : ""}
               />
               {formErrors.age && <span className="field-error">{formErrors.age}</span>}
             </div>
 
             <div className="form-group">
               <label>Course</label>
-              <select value={form.course} onChange={setField("course")}
-                className={formErrors.course ? "input-error" : ""}
-              >
+              <select value={form.course} onChange={setField("course")} className={formErrors.course ? "input-error" : ""}>
                 <option value="">Select a course</option>
                 {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -911,8 +1073,7 @@ export default function StudentApp() {
                   if (form.rollno && !isValidRollNo(form.rollno))
                     setFormErrors((fe) => ({ ...fe, rollno: "2–20 alphanumeric characters (hyphens and slashes allowed)." }));
                 }}
-                placeholder="e.g. CS-2024-001"
-                className={formErrors.rollno ? "input-error" : ""}
+                placeholder="e.g. CS-2024-001" className={formErrors.rollno ? "input-error" : ""}
               />
               {formErrors.rollno && <span className="field-error">{formErrors.rollno}</span>}
             </div>
@@ -920,8 +1081,7 @@ export default function StudentApp() {
             <div className="form-group span-2">
               <label>University</label>
               <input type="text" value={form.university} onChange={setField("university")}
-                placeholder="e.g. Delhi University"
-                className={formErrors.university ? "input-error" : ""}
+                placeholder="e.g. Delhi University" className={formErrors.university ? "input-error" : ""}
               />
               {formErrors.university && <span className="field-error">{formErrors.university}</span>}
             </div>
@@ -934,8 +1094,7 @@ export default function StudentApp() {
                   if (form.email && !isValidEmail(form.email))
                     setFormErrors((fe) => ({ ...fe, email: "Enter a valid email address." }));
                 }}
-                placeholder="student@example.com"
-                className={formErrors.email ? "input-error" : ""}
+                placeholder="student@example.com" className={formErrors.email ? "input-error" : ""}
               />
               {formErrors.email && <span className="field-error">{formErrors.email}</span>}
             </div>
@@ -956,8 +1115,7 @@ export default function StudentApp() {
             <div className="form-group span-2">
               <label>Address</label>
               <input type="text" value={form.address} onChange={setField("address")}
-                placeholder="Full postal address"
-                className={formErrors.address ? "input-error" : ""}
+                placeholder="Full postal address" className={formErrors.address ? "input-error" : ""}
               />
               {formErrors.address && <span className="field-error">{formErrors.address}</span>}
             </div>
@@ -978,31 +1136,42 @@ export default function StudentApp() {
         <div className="list-section">
           <div className="list-header">
             <p className="list-count">
-              {students.length === 0 ? "No students enrolled yet." : `${students.length} student${students.length === 1 ? "" : "s"} enrolled`}
+              {students.length === 0
+                ? "No students enrolled yet."
+                : filteredStudents.length === students.length
+                  ? `${students.length} student${students.length === 1 ? "" : "s"} enrolled`
+                  : `${filteredStudents.length} of ${students.length} students`}
             </p>
             <button className="btn-ghost btn-sm" onClick={fetchStudents}>Refresh</button>
           </div>
+
+          {students.length > 0 && (
+            <SearchBar
+              query={searchQuery}
+              onQuery={(q) => setSearchQuery(q)}
+              filterField={searchField}
+              onFilter={(f) => { setSearchField(f); setSearchQuery(""); }}
+            />
+          )}
+
           {loading ? (
             <p className="state-message">Loading students...</p>
-          ) : students.length === 0 ? null : (
+          ) : students.length === 0 ? null : filteredStudents.length === 0 ? (
+            <div className="search-empty">
+              <p>No students match <strong>"{searchQuery}"</strong>{searchField !== "all" ? ` in ${SEARCH_FIELDS.find(f => f.value === searchField)?.label}` : ""}.</p>
+              <button className="link-btn" onClick={() => { setSearchQuery(""); setSearchField("all"); }}>Clear search</button>
+            </div>
+          ) : (
             <div className="table-wrapper">
               <table>
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Age</th>
-                    <th>Course</th>
-                    <th>Roll No</th>
-                    <th>University</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Address</th>
-                    <th>Actions</th>
+                    <th>#</th><th>Name</th><th>Age</th><th>Course</th><th>Roll No</th>
+                    <th>University</th><th>Email</th><th>Phone</th><th>Address</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map((s, i) => (
+                  {filteredStudents.map((s, i) => (
                     <tr key={s._id || i}>
                       <td className="td-index">{i + 1}</td>
                       <td className="td-name">{s.name}</td>
