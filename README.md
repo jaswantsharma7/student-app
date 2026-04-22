@@ -53,7 +53,7 @@ A full-stack MERN application for managing student records, with per-user authen
 ## Project Structure
 
 ```
-/student-registry-app
+/student-app
 ├── /backend
 │   ├── /config
 │   │   ├── db.js
