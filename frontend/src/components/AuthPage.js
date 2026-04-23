@@ -197,6 +197,13 @@ export default function AuthPage({ onAuth }) {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      if (mode === "login") handleLogin();
+      else if (mode === "register") handleRegister();
+    }
+  };
+
   const switchMode = (next) => {
     setMode(next); setError(null); setSuccess(null);
     setFieldErrors({}); setOtpErrors({});
@@ -218,7 +225,7 @@ export default function AuthPage({ onAuth }) {
           {error   && <p className="error">{error}</p>}
           {success && <p className="success-msg">{success}</p>}
 
-          <div className="form-group">
+          <div className="form-group" onKeyDown={(e) => { if (e.key === "Enter") handleLogin2fa(); }}>
             <label>Sign-in verification code</label>
             <OtpInput value={loginOtp} onChange={setLoginOtp} hasError={!!loginOtpError} />
             {loginOtpError && <span className="field-error">{loginOtpError}</span>}
@@ -303,6 +310,7 @@ export default function AuthPage({ onAuth }) {
           <label>Email address</label>
           <input
             type="email" value={form.email} onChange={setField("email")}
+            onKeyDown={handleKeyDown}
             onBlur={() => {
               if (form.email && !isValidEmail(form.email))
                 setFieldErrors((fe) => ({ ...fe, email: "Enter a valid email address." }));
@@ -332,6 +340,7 @@ export default function AuthPage({ onAuth }) {
           <label>Password</label>
           <input
             type="password" value={form.password} onChange={setField("password")}
+            onKeyDown={handleKeyDown}
             placeholder={mode === "register" ? "Min. 8 characters" : "Your password"}
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             className={fieldErrors.password ? "input-error" : ""}
@@ -344,6 +353,7 @@ export default function AuthPage({ onAuth }) {
             <label>Confirm password</label>
             <input
               type="password" value={form.confirmPassword} onChange={setField("confirmPassword")}
+              onKeyDown={handleKeyDown}
               placeholder="Repeat password" autoComplete="new-password"
               className={fieldErrors.confirmPassword ? "input-error" : ""}
             />
