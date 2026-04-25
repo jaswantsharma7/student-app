@@ -11,7 +11,7 @@ A full-stack MERN application for managing student records, with per-user authen
 ### Authentication & Security
 * **JWT-Based Sessions:** Secure, stateless user sessions using JSON Web Tokens.
 * **Dual Two-Factor Authentication (2FA):**
-    * Requires both **Email OTP** (via Nodemailer) and **SMS OTP** (via Twilio) during registration.
+    * Requires **Email OTP** (via Nodemailer) during registration.
     * Requires an Email OTP step during the login process.
 * **Timing-Attack Prevention:** Uses dummy password hashing checks during login if an email isn't found, preventing malicious actors from enumerating valid email addresses.
 * **Rate Limiting:** Protects all authentication and OTP endpoints (`express-rate-limit`) against brute-force attacks and spam.
@@ -45,7 +45,6 @@ A full-stack MERN application for managing student records, with per-user authen
 | Database | MongoDB Atlas |
 | Auth | JWT + bcryptjs + express-rate-limiter + cors |
 | Email OTP | Nodemailer + Gmail SMTP |
-| SMS OTP | Twilio |
 | Environment & Utilities | dotenv |
 
 ---
@@ -104,7 +103,7 @@ A full-stack MERN application for managing student records, with per-user authen
 
 ## Third-Party Service Setup
 
-Before deploying, you need credentials from two free services.
+Before deploying, you need credentials from a free service.
 
 ### Gmail App Password (for email OTP)
 
@@ -121,20 +120,6 @@ Notes:
 - Use a dedicated Gmail account for sending, not your personal one
 - If you do not see "App passwords", 2-Step Verification is not enabled
 
-### Twilio (for SMS OTP)
-
-Twilio has a free trial with enough credits to test thoroughly.
-
-1. Sign up at https://www.twilio.com/try-twilio
-2. After signing up, go to your **Console Dashboard**: https://console.twilio.com
-3. Copy your **Account SID** and **Auth Token** from the dashboard
-4. Click **Get a phone number** (free trial gives you one number automatically)
-   - The number will look like `+12025551234` — this is your `TWILIO_PHONE_NUMBER`
-5. Free trial note: on trial accounts, you can only send SMS to **verified numbers**
-   - Go to **Phone Numbers → Verified Caller IDs** in the Twilio Console
-   - Add and verify any phone numbers you want to test with
-   - To send to any number without restrictions, upgrade to a paid account
-
 ---
 
 ## Local Development
@@ -144,7 +129,6 @@ Twilio has a free trial with enough credits to test thoroughly.
 - Node.js v18+
 - A MongoDB Atlas cluster (free tier works)
 - Gmail App Password (see above)
-- Twilio account (see above)
 
 ### 1. Clone the repo
 
@@ -171,11 +155,6 @@ ALLOWED_ORIGINS=http://localhost:3000
 
 GMAIL_USER=your-email@gmail.com
 GMAIL_APP_PASSWORD=your16charapppassword
-
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
-```
 
 ```bash
 npm start
@@ -210,19 +189,17 @@ POST /auth/register
   → Validate inputs
   → Check email + phone not already registered
   → Hash password, save as PendingUser (expires 15 min)
-  → Generate 6-digit email OTP + 6-digit phone OTP
-  → Hash and store both OTPs (expire 10 min)
+  → Generate 6-digit email OTP
+  → Hash and store OTP (expire 10 min)
   → Send email via Gmail SMTP
-  → Send SMS via Twilio
         ↓
 OTP verification screen shown
         ↓
-User enters both 6-digit codes
+User enters 6-digit code
         ↓
 POST /auth/verify-otp
   → Verify email OTP (max 5 attempts)
-  → Verify phone OTP (max 5 attempts)
-  → Create real User document (emailVerified: true, phoneVerified: true)
+  → Create real User document (emailVerified: true)
   → Delete PendingUser
   → Return JWT token
         ↓
@@ -237,11 +214,11 @@ User is signed in
 
 | Method | Endpoint | Body | Description |
 |---|---|---|---|
-| POST | `/auth/register` | `{ email, phone, password }` | Send OTPs; save pending registration |
-| POST | `/auth/verify-otp` | `{ email, emailOtp, phoneOtp }` | Verify both OTPs; create account; return JWT |
-| POST | `/auth/resend-otp` | `{ email, type }` | Resend one OTP (`type`: `"email"` or `"phone"`) |
+| POST | `/auth/register` | `{ email, password }` | Send OTP; save pending registration |
+| POST | `/auth/verify-otp` | `{ email, emailOtp }` | Verify OTP; create account; return JWT |
+| POST | `/auth/resend-otp` | `{ email, type }` | Resend OTP (`type`: `"email"` ) |
 | POST | `/auth/login` | `{ email, password }` | Sign in; return JWT |
-| POST | `/auth/login-verify` | `{ email, otp}` | Verify Login 2FA and return JWT |
+| POST | `/auth/login-verify` | `{ email, otp }` | Verify Login 2FA and return JWT |
 | GET | `/auth/me` | — (Bearer token) | Verify token; return user info |
 
 ### Students (all require `Authorization: Bearer <token>`)
