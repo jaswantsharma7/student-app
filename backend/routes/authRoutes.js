@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const PendingUser = require('../models/PendingUser');
 const normalisePhone = require('../services/phoneNormalizer');
-const { generateOtp, sendEmailOtp, sendPhoneOtp, storeOtp, verifyOtp } = require('../services/otpService');
+const { generateOtp, sendEmailOtp, storeOtp, verifyOtp } = require('../services/otpService');
 const { registerLimiter, loginLimiter, otpLimiter, resendLimiter } = require('../middlewares/rateLimiters');
 const authenticate = require('../middlewares/authMiddleware');
 
@@ -36,7 +36,6 @@ router.post('/register', registerLimiter, async (req, res) => {
           phone: normPhone,
           passwordHash,
           emailVerified: false,
-          phoneVerified: false,
           createdAt: new Date(),
         },
       },
@@ -44,30 +43,18 @@ router.post('/register', registerLimiter, async (req, res) => {
     );
 
     const emailOtp = generateOtp();
-    const phoneOtp = generateOtp();
+    await storeOtp(normEmail, 'email', emailOtp);
 
-    await Promise.all([
-      storeOtp(normEmail, 'email', emailOtp),
-      storeOtp(normPhone, 'phone', phoneOtp),
-    ]);
-
-    const results = await Promise.allSettled([
-      sendEmailOtp(normEmail, emailOtp, 'Your email verification code', 'email verification'),
-      sendPhoneOtp(normPhone, phoneOtp),
-    ]);
-
-    const emailFailed = results[0].status === 'rejected';
-    const phoneFailed = results[1].status === 'rejected';
-
-    if (emailFailed || phoneFailed) {
-      const failed = [emailFailed && 'email', phoneFailed && 'SMS'].filter(Boolean).join(' and ');
-      console.error('OTP send failures:', results.map(r => r.reason?.message));
+    try {
+      await sendEmailOtp(normEmail, emailOtp, 'Your email verification code', 'email verification');
+    } catch (sendErr) {
+      console.error('OTP send failure:', sendErr);
       return res.status(502).json({
-        error: `Could not send verification code via ${failed}. Check your details and try again.`,
+        error: 'Could not send verification code via email. Check your details and try again.',
       });
     }
 
-    res.status(200).json({ message: 'Verification codes sent to your email and phone.' });
+    res.status(200).json({ message: 'Verification code sent to your email.' });
   } catch (err) {
     if (err.code === 11000) {
       const field = err.keyPattern?.phone ? 'phone number' : 'email';
@@ -84,9 +71,9 @@ router.post('/register', registerLimiter, async (req, res) => {
 
 router.post('/verify-otp', otpLimiter, async (req, res) => {
   try {
-    const { email, emailOtp, phoneOtp } = req.body;
-    if (!email || !emailOtp || !phoneOtp)
-      return res.status(400).json({ error: 'Email and both verification codes are required.' });
+    const { email, emailOtp } = req.body;
+    if (!email || !emailOtp)
+      return res.status(400).json({ error: 'Email and verification code are required.' });
 
     const normEmail = email.toLowerCase().trim();
     const pending = await PendingUser.findOne({ email: normEmail });
@@ -97,10 +84,6 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
     if (!emailResult.ok)
       return res.status(400).json({ error: `Email code: ${emailResult.error}`, field: 'emailOtp' });
 
-    const phoneResult = await verifyOtp(pending.phone, 'phone', phoneOtp.trim());
-    if (!phoneResult.ok)
-      return res.status(400).json({ error: `SMS code: ${phoneResult.error}`, field: 'phoneOtp' });
-
     if (await User.findOne({ email: normEmail }))
       return res.status(409).json({ error: 'An account with this email already exists.' });
 
@@ -109,7 +92,6 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
       phone: pending.phone,
       passwordHash: pending.passwordHash,
       emailVerified: true,
-      phoneVerified: true,
     });
 
     await PendingUser.deleteOne({ email: normEmail });
@@ -182,7 +164,7 @@ router.post('/login-verify', otpLimiter, async (req, res) => {
 router.post('/resend-otp', resendLimiter, async (req, res) => {
   try {
     const { email, type } = req.body;
-    if (!email || !['email', 'phone'].includes(type))
+    if (!email || type !== 'email')
       return res.status(400).json({ error: 'Invalid request.' });
 
     const normEmail = email.toLowerCase().trim();
@@ -191,16 +173,10 @@ router.post('/resend-otp', resendLimiter, async (req, res) => {
       return res.status(400).json({ error: 'No pending registration found. Please register again.' });
 
     const otp = generateOtp();
+    await storeOtp(normEmail, 'email', otp);
+    await sendEmailOtp(normEmail, otp, 'Your email verification code', 'email verification');
 
-    if (type === 'email') {
-      await storeOtp(normEmail, 'email', otp);
-      await sendEmailOtp(normEmail, otp, 'Your email verification code', 'email verification');
-    } else {
-      await storeOtp(pending.phone, 'phone', otp);
-      await sendPhoneOtp(pending.phone, otp);
-    }
-
-    res.json({ message: `A new code has been sent to your ${type === 'email' ? 'email' : 'phone'}.` });
+    res.json({ message: 'A new code has been sent to your email.' });
   } catch (err) {
     console.error('Resend OTP error:', err);
     res.status(500).json({ error: 'Could not resend code. Please try again.' });

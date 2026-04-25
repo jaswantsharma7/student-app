@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const twilio = require('twilio');
 const bcrypt = require('bcryptjs');
 const OTP = require('../models/OTP');
 
@@ -10,11 +9,6 @@ const emailTransporter = nodemailer.createTransport({
     pass: process.env.GMAIL_APP_PASSWORD,
   },
 });
-
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -35,15 +29,6 @@ const sendEmailOtp = async (email, otp, subject, purpose) => {
         <p style="font-size: 12px; color: #aaa; margin: 0;">This code expires in 10 minutes. Do not share it with anyone.</p>
       </div>
     `,
-  });
-};
-
-const sendPhoneOtp = async (phone, otp) => {
-  const to = phone.startsWith('+') ? phone : `+${phone.replace(/[^\d]/g, '')}`;
-  await twilioClient.messages.create({
-    body: `Your Student Registry verification code is: ${otp}. Expires in 10 minutes.`,
-    from: process.env.TWILIO_PHONE_NUMBER,
-    to,
   });
 };
 
@@ -71,4 +56,4 @@ const verifyOtp = async (identifier, type, otp) => {
   return { ok: true };
 };
 
-module.exports = { generateOtp, sendEmailOtp, sendPhoneOtp, storeOtp, verifyOtp };
+module.exports = { generateOtp, sendEmailOtp, storeOtp, verifyOtp };

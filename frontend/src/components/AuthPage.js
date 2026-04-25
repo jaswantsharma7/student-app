@@ -18,20 +18,18 @@ export default function AuthPage({ onAuth }) {
 
   const [pendingEmail, setPendingEmail] = useState("");
   const [emailOtp, setEmailOtp] = useState("");
-  const [phoneOtp, setPhoneOtp] = useState("");
   const [otpErrors, setOtpErrors] = useState({});
 
   const [login2faEmail, setLogin2faEmail] = useState("");
   const [loginOtp,  setLoginOtp]  = useState("");
   const [loginOtpError, setLoginOtpError] = useState(null);
 
-  const [resendCooldown, setResendCooldown] = useState({ email: 0, phone: 0, login: 0 });
+  const [resendCooldown, setResendCooldown] = useState({ email: 0, login: 0 });
 
   useEffect(() => {
     const interval = setInterval(() => {
       setResendCooldown((c) => ({
         email: c.email > 0 ? c.email - 1 : 0,
-        phone: c.phone > 0 ? c.phone - 1 : 0,
         login: c.login > 0 ? c.login - 1 : 0,
       }));
     }, 1000);
@@ -71,7 +69,7 @@ export default function AuthPage({ onAuth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed.");
       setPendingEmail(form.email.trim());
-      setResendCooldown((c) => ({ ...c, email: 60, phone: 60 }));
+      setResendCooldown((c) => ({ ...c, email: 60 }));
       setMode("verify");
     } catch (err) {
       setError(err.message);
@@ -83,21 +81,19 @@ export default function AuthPage({ onAuth }) {
   const handleVerify = async () => {
     setError(null); setOtpErrors({});
     const cleanEmail = emailOtp.replace(/\s/g, "");
-    const cleanPhone = phoneOtp.replace(/\s/g, "");
-    if (cleanEmail.length < 6 || cleanPhone.length < 6) {
-      setError("Enter all 6 digits of both codes."); return;
+    if (cleanEmail.length < 6) {
+      setError("Enter all 6 digits of the code."); return;
     }
     setLoading(true);
     try {
       const res  = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: pendingEmail, emailOtp: cleanEmail, phoneOtp: cleanPhone }),
+        body: JSON.stringify({ email: pendingEmail, emailOtp: cleanEmail }),
       });
       const data = await res.json();
       if (!res.ok) {
         if (data.field === "emailOtp") setOtpErrors({ emailOtp: data.error });
-        else if (data.field === "phoneOtp") setOtpErrors({ phoneOtp: data.error });
         else setError(data.error || "Verification failed.");
         return;
       }
@@ -191,7 +187,7 @@ export default function AuthPage({ onAuth }) {
       if (!res.ok) throw new Error(data.error || "Could not resend code.");
       setSuccess(data.message);
       setResendCooldown((c) => ({ ...c, [type]: 60 }));
-      if (type === "email") setEmailOtp(""); else setPhoneOtp("");
+      if (type === "email") setEmailOtp("");
     } catch (err) {
       setError(err.message);
     }
@@ -209,7 +205,7 @@ export default function AuthPage({ onAuth }) {
     setFieldErrors({}); setOtpErrors({});
     setForm({ email: "", password: "", confirmPassword: "" });
     setRegLocalPhone(""); setRegCountry(DEFAULT_COUNTRY);
-    setEmailOtp(""); setPhoneOtp(""); setLoginOtp("");
+    setEmailOtp(""); setLoginOtp("");
     setLoginOtpError(null);
   };
 
@@ -259,7 +255,7 @@ export default function AuthPage({ onAuth }) {
         <div className="auth-card">
           <h2>Verify Your Identity</h2>
           <p className="auth-subtitle">
-            Codes sent to <strong>{pendingEmail}</strong> and your phone.
+            A code was sent to <strong>{pendingEmail}</strong>.
           </p>
 
           {error   && <p className="error">{error}</p>}
@@ -271,15 +267,6 @@ export default function AuthPage({ onAuth }) {
             {otpErrors.emailOtp && <span className="field-error">{otpErrors.emailOtp}</span>}
             <button className="link-btn resend-btn" onClick={() => handleResend("email")} disabled={resendCooldown.email > 0}>
               {resendCooldown.email > 0 ? `Resend email code (${resendCooldown.email}s)` : "Resend email code"}
-            </button>
-          </div>
-
-          <div className="form-group">
-            <label>SMS verification code</label>
-            <OtpInput value={phoneOtp} onChange={setPhoneOtp} hasError={!!otpErrors.phoneOtp} />
-            {otpErrors.phoneOtp && <span className="field-error">{otpErrors.phoneOtp}</span>}
-            <button className="link-btn resend-btn" onClick={() => handleResend("phone")} disabled={resendCooldown.phone > 0}>
-              {resendCooldown.phone > 0 ? `Resend SMS code (${resendCooldown.phone}s)` : "Resend SMS code"}
             </button>
           </div>
 
