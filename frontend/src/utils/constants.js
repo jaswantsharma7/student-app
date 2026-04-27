@@ -1,7 +1,71 @@
-export const COURSES = [
-  "Computer Science", "Mathematics", "Physics", "Engineering",
-  "Business", "Design", "Medicine", "Law",
+// UG Courses with semester counts
+export const UG_COURSES = [
+  { name: "B.Tech (Computer Science)",       semesters: 8 },
+  { name: "B.Tech (Electronics & Comm.)",    semesters: 8 },
+  { name: "B.Tech (Mechanical Engineering)", semesters: 8 },
+  { name: "B.Tech (Civil Engineering)",      semesters: 8 },
+  { name: "B.Tech (Electrical Engineering)", semesters: 8 },
+  { name: "B.Tech (Information Technology)", semesters: 8 },
+  { name: "B.Sc (Computer Science)",         semesters: 6 },
+  { name: "B.Sc (Physics)",                  semesters: 6 },
+  { name: "B.Sc (Chemistry)",                semesters: 6 },
+  { name: "B.Sc (Mathematics)",              semesters: 6 },
+  { name: "B.Sc (Biology)",                  semesters: 6 },
+  { name: "B.Sc (Statistics)",               semesters: 6 },
+  { name: "BCA (Computer Applications)",     semesters: 6 },
+  { name: "BBA (Business Administration)",   semesters: 6 },
+  { name: "B.Com (Commerce)",                semesters: 6 },
+  { name: "B.Com (Honours)",                 semesters: 6 },
+  { name: "BA (Economics)",                  semesters: 6 },
+  { name: "BA (English Literature)",         semesters: 6 },
+  { name: "BA (History)",                    semesters: 6 },
+  { name: "BA (Political Science)",          semesters: 6 },
+  { name: "BA (Psychology)",                 semesters: 6 },
+  { name: "BA (Sociology)",                  semesters: 6 },
+  { name: "B.Arch (Architecture)",           semesters: 10 },
+  { name: "MBBS (Medicine)",                 semesters: 10 },
+  { name: "BDS (Dental Surgery)",            semesters: 8 },
+  { name: "B.Pharm (Pharmacy)",              semesters: 8 },
+  { name: "LLB (Law)",                       semesters: 6 },
+  { name: "B.Ed (Education)",                semesters: 4 },
+  { name: "BHM (Hotel Management)",          semesters: 8 },
+  { name: "B.Des (Design)",                  semesters: 8 },
 ];
+
+export const COURSES = UG_COURSES.map((c) => c.name);
+
+export const getSemesters = (courseName) => {
+  const found = UG_COURSES.find((c) => c.name === courseName);
+  return found ? found.semesters : 6;
+};
+
+// Grade thresholds (10-point SGPA scale based on marks %)
+export const getGrade = (pct) => {
+  if (pct >= 90) return { letter: "O",  points: 10, label: "Outstanding" };
+  if (pct >= 80) return { letter: "A+", points: 9,  label: "Excellent"   };
+  if (pct >= 70) return { letter: "A",  points: 8,  label: "Very Good"   };
+  if (pct >= 60) return { letter: "B+", points: 7,  label: "Good"        };
+  if (pct >= 50) return { letter: "B",  points: 6,  label: "Above Avg"   };
+  if (pct >= 45) return { letter: "C",  points: 5,  label: "Average"     };
+  if (pct >= 40) return { letter: "P",  points: 4,  label: "Pass"        };
+  return           { letter: "F",  points: 0,  label: "Fail"        };
+};
+
+export const calcSGPA = (subjects) => {
+  if (!subjects || subjects.length === 0) return null;
+  const valid = subjects.filter((s) => s.name?.trim() && s.marks !== "" && !isNaN(Number(s.marks)));
+  if (valid.length === 0) return null;
+  const totalPct = valid.reduce((sum, s) => sum + Number(s.marks), 0) / valid.length;
+  return parseFloat(getGrade(totalPct).points.toFixed(2));
+};
+
+export const calcCGPA = (semesters) => {
+  const sgpas = semesters
+    .map((sem) => calcSGPA(sem.subjects))
+    .filter((g) => g !== null);
+  if (sgpas.length === 0) return null;
+  return parseFloat((sgpas.reduce((a, b) => a + b, 0) / sgpas.length).toFixed(2));
+};
 
 export const COUNTRY_CODES = [
   { code: "+91", iso: "IN", name: "India", flag: "🇮🇳" },
@@ -18,109 +82,21 @@ export const COUNTRY_CODES = [
   { code: "+7", iso: "RU", name: "Russia", flag: "🇷🇺" },
   { code: "+27", iso: "ZA", name: "South Africa", flag: "🇿🇦" },
   { code: "+52", iso: "MX", name: "Mexico", flag: "🇲🇽" },
-  { code: "+62", iso: "ID", name: "Indonesia", flag: "🇮🇩" },
   { code: "+92", iso: "PK", name: "Pakistan", flag: "🇵🇰" },
   { code: "+880", iso: "BD", name: "Bangladesh", flag: "🇧🇩" },
   { code: "+234", iso: "NG", name: "Nigeria", flag: "🇳🇬" },
-  { code: "+20", iso: "EG", name: "Egypt", flag: "🇪🇬" },
-  { code: "+34", iso: "ES", name: "Spain", flag: "🇪🇸" },
-  { code: "+39", iso: "IT", name: "Italy", flag: "🇮🇹" },
-  { code: "+31", iso: "NL", name: "Netherlands", flag: "🇳🇱" },
-  { code: "+46", iso: "SE", name: "Sweden", flag: "🇸🇪" },
-  { code: "+47", iso: "NO", name: "Norway", flag: "🇳🇴" },
-  { code: "+45", iso: "DK", name: "Denmark", flag: "🇩🇰" },
-  { code: "+358", iso: "FI", name: "Finland", flag: "🇫🇮" },
-  { code: "+41", iso: "CH", name: "Switzerland", flag: "🇨🇭" },
-  { code: "+43", iso: "AT", name: "Austria", flag: "🇦🇹" },
-  { code: "+32", iso: "BE", name: "Belgium", flag: "🇧🇪" },
-  { code: "+351", iso: "PT", name: "Portugal", flag: "🇵🇹" },
-  { code: "+48", iso: "PL", name: "Poland", flag: "🇵🇱" },
-  { code: "+380", iso: "UA", name: "Ukraine", flag: "🇺🇦" },
-  { code: "+90", iso: "TR", name: "Turkey", flag: "🇹🇷" },
-  { code: "+966", iso: "SA", name: "Saudi Arabia", flag: "🇸🇦" },
-  { code: "+971", iso: "AE", name: "UAE", flag: "🇦🇪" },
-  { code: "+972", iso: "IL", name: "Israel", flag: "🇮🇱" },
   { code: "+65", iso: "SG", name: "Singapore", flag: "🇸🇬" },
-  { code: "+60", iso: "MY", name: "Malaysia", flag: "🇲🇾" },
-  { code: "+66", iso: "TH", name: "Thailand", flag: "🇹🇭" },
-  { code: "+84", iso: "VN", name: "Vietnam", flag: "🇻🇳" },
-  { code: "+63", iso: "PH", name: "Philippines", flag: "🇵🇭" },
   { code: "+94", iso: "LK", name: "Sri Lanka", flag: "🇱🇰" },
   { code: "+977", iso: "NP", name: "Nepal", flag: "🇳🇵" },
-  { code: "+98", iso: "IR", name: "Iran", flag: "🇮🇷" },
-  { code: "+964", iso: "IQ", name: "Iraq", flag: "🇮🇶" },
-  { code: "+254", iso: "KE", name: "Kenya", flag: "🇰🇪" },
-  { code: "+233", iso: "GH", name: "Ghana", flag: "🇬🇭" },
-  { code: "+251", iso: "ET", name: "Ethiopia", flag: "🇪🇹" },
-  { code: "+255", iso: "TZ", name: "Tanzania", flag: "🇹🇿" },
-  { code: "+213", iso: "DZ", name: "Algeria", flag: "🇩🇿" },
-  { code: "+212", iso: "MA", name: "Morocco", flag: "🇲🇦" },
-  { code: "+216", iso: "TN", name: "Tunisia", flag: "🇹🇳" },
-  { code: "+64", iso: "NZ", name: "New Zealand", flag: "🇳🇿" },
-  { code: "+54", iso: "AR", name: "Argentina", flag: "🇦🇷" },
-  { code: "+56", iso: "CL", name: "Chile", flag: "🇨🇱" },
-  { code: "+57", iso: "CO", name: "Colombia", flag: "🇨🇴" },
-  { code: "+51", iso: "PE", name: "Peru", flag: "🇵🇪" },
-  { code: "+58", iso: "VE", name: "Venezuela", flag: "🇻🇪" },
-  { code: "+593", iso: "EC", name: "Ecuador", flag: "🇪🇨" },
-  { code: "+502", iso: "GT", name: "Guatemala", flag: "🇬🇹" },
-  { code: "+503", iso: "SV", name: "El Salvador", flag: "🇸🇻" },
-  { code: "+504", iso: "HN", name: "Honduras", flag: "🇭🇳" },
-  { code: "+505", iso: "NI", name: "Nicaragua", flag: "🇳🇮" },
-  { code: "+506", iso: "CR", name: "Costa Rica", flag: "🇨🇷" },
-  { code: "+507", iso: "PA", name: "Panama", flag: "🇵🇦" },
-  { code: "+53", iso: "CU", name: "Cuba", flag: "🇨🇺" },
-  { code: "+1-876", iso: "JM", name: "Jamaica", flag: "🇯🇲" },
-  { code: "+30", iso: "GR", name: "Greece", flag: "🇬🇷" },
-  { code: "+36", iso: "HU", name: "Hungary", flag: "🇭🇺" },
-  { code: "+420", iso: "CZ", name: "Czech Republic", flag: "🇨🇿" },
-  { code: "+421", iso: "SK", name: "Slovakia", flag: "🇸🇰" },
-  { code: "+40", iso: "RO", name: "Romania", flag: "🇷🇴" },
-  { code: "+359", iso: "BG", name: "Bulgaria", flag: "🇧🇬" },
-  { code: "+385", iso: "HR", name: "Croatia", flag: "🇭🇷" },
-  { code: "+381", iso: "RS", name: "Serbia", flag: "🇷🇸" },
-  { code: "+370", iso: "LT", name: "Lithuania", flag: "🇱🇹" },
-  { code: "+371", iso: "LV", name: "Latvia", flag: "🇱🇻" },
-  { code: "+372", iso: "EE", name: "Estonia", flag: "🇪🇪" },
-  { code: "+353", iso: "IE", name: "Ireland", flag: "🇮🇪" },
-  { code: "+354", iso: "IS", name: "Iceland", flag: "🇮🇸" },
-  { code: "+352", iso: "LU", name: "Luxembourg", flag: "🇱🇺" },
-  { code: "+356", iso: "MT", name: "Malta", flag: "🇲🇹" },
-  { code: "+357", iso: "CY", name: "Cyprus", flag: "🇨🇾" },
-  { code: "+850", iso: "KP", name: "North Korea", flag: "🇰🇵" },
-  { code: "+886", iso: "TW", name: "Taiwan", flag: "🇹🇼" },
-  { code: "+852", iso: "HK", name: "Hong Kong", flag: "🇭🇰" },
-  { code: "+853", iso: "MO", name: "Macau", flag: "🇲🇴" },
-  { code: "+976", iso: "MN", name: "Mongolia", flag: "🇲🇳" },
-  { code: "+855", iso: "KH", name: "Cambodia", flag: "🇰🇭" },
-  { code: "+856", iso: "LA", name: "Laos", flag: "🇱🇦" },
-  { code: "+95", iso: "MM", name: "Myanmar", flag: "🇲🇲" },
-  { code: "+673", iso: "BN", name: "Brunei", flag: "🇧🇳" },
-  { code: "+670", iso: "TL", name: "Timor-Leste", flag: "🇹🇱" },
-  { code: "+679", iso: "FJ", name: "Fiji", flag: "🇫🇯" },
-  { code: "+675", iso: "PG", name: "Papua New Guinea", flag: "🇵🇬" },
-  { code: "+677", iso: "SB", name: "Solomon Islands", flag: "🇸🇧" },
-  { code: "+93", iso: "AF", name: "Afghanistan", flag: "🇦🇫" },
-  { code: "+374", iso: "AM", name: "Armenia", flag: "🇦🇲" },
-  { code: "+994", iso: "AZ", name: "Azerbaijan", flag: "🇦🇿" },
-  { code: "+375", iso: "BY", name: "Belarus", flag: "🇧🇾" },
-  { code: "+995", iso: "GE", name: "Georgia", flag: "🇬🇪" },
-  { code: "+7", iso: "KZ", name: "Kazakhstan", flag: "🇰🇿" },
-  { code: "+996", iso: "KG", name: "Kyrgyzstan", flag: "🇰🇬" },
-  { code: "+998", iso: "UZ", name: "Uzbekistan", flag: "🇺🇿" },
-  { code: "+992", iso: "TJ", name: "Tajikistan", flag: "🇹🇯" },
-  { code: "+993", iso: "TM", name: "Turkmenistan", flag: "🇹🇲" },
 ];
 
 export const DEFAULT_COUNTRY = COUNTRY_CODES[0];
 
 export const SEARCH_FIELDS = [
-  { value: "all",        label: "All fields"  },
-  { value: "name",       label: "Name"        },
-  { value: "course",     label: "Course"      },
-  { value: "rollno",     label: "Roll No"     },
-  { value: "university", label: "University"  },
-  { value: "email",      label: "Email"       },
-  { value: "phone",      label: "Phone"       },
-  { value: "address",    label: "Address"     },
+  { value: "all",    label: "All fields" },
+  { value: "name",   label: "Name"       },
+  { value: "course", label: "Course"     },
+  { value: "rollno", label: "Roll No"    },
+  { value: "email",  label: "Email"      },
+  { value: "phone",  label: "Phone"      },
 ];

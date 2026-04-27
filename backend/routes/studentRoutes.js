@@ -2,16 +2,22 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Student = require('../models/Student');
 const normalisePhone = require('../services/phoneNormalizer');
-const { pickFields } = require('../utils/helpers');
 const authenticate = require('../middlewares/authMiddleware');
 
 const router = express.Router();
-
 router.use(authenticate);
+
+const ALLOWED = ['name', 'course', 'year', 'currentSem', 'rollno', 'email', 'phone', 'address', 'semesters', 'cgpa'];
+
+function pickFields(body, fields) {
+  const out = {};
+  for (const f of fields) if (body[f] !== undefined) out[f] = body[f];
+  return out;
+}
 
 router.get('/', async (req, res) => {
   try {
-    const data = await Student.find({ userId: req.userId }).select('-userId');
+    const data = await Student.find({ userId: req.userId }).select('-userId').sort({ createdAt: -1 });
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -20,8 +26,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const fields = pickFields(req.body, ['name', 'age', 'course', 'rollno', 'university', 'email', 'phone', 'address']);
-    fields.age = Number(fields.age);
+    const fields = pickFields(req.body, ALLOWED);
     if (fields.phone) fields.phone = normalisePhone(fields.phone);
     fields.userId = req.userId;
     const newStudent = new Student(fields);
@@ -44,8 +49,7 @@ router.put('/:id', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ error: 'Invalid student ID format' });
 
-    const fields = pickFields(req.body, ['name', 'age', 'course', 'rollno', 'university', 'email', 'phone', 'address']);
-    if (fields.age !== undefined) fields.age = Number(fields.age);
+    const fields = pickFields(req.body, ALLOWED);
     if (fields.phone) fields.phone = normalisePhone(fields.phone);
 
     const updated = await Student.findOneAndUpdate(
