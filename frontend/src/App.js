@@ -1,7 +1,7 @@
 import "./App.css";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  COURSES, UG_COURSES, COUNTRY_CODES, DEFAULT_COUNTRY, SEARCH_FIELDS,
+  UG_COURSES, COUNTRY_CODES, DEFAULT_COUNTRY,
   getSemesters, getGrade, calcSGPA, calcCGPA,
 } from "./utils/constants";
 import { isValidEmail, isValidLocalNumber, isValidRollNo, buildE164 } from "./utils/validators";
