@@ -1,8 +1,12 @@
 const mongoose = require('mongoose');
 
 const subjectSchema = new mongoose.Schema({
-  name:  { type: String, trim: true, maxlength: 100 },
-  marks: { type: Number, min: 0, max: 100 },
+  name:             { type: String, trim: true, maxlength: 100 },
+  internalMarks:    { type: Number, min: 0, default: 0 },
+  maxInternalMarks: { type: Number, min: 0, default: 0 },
+  externalMarks:    { type: Number, min: 0, default: 0 },
+  maxExternalMarks: { type: Number, min: 0, default: 0 },
+  marks:            { type: Number, min: 0, max: 100 },
 }, { _id: false });
 
 const semesterSchema = new mongoose.Schema({
