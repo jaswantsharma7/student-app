@@ -11,7 +11,7 @@ A full-stack MERN application for managing student records, with per-user authen
 ### Authentication & Security
 * **JWT-Based Sessions:** Secure, stateless user sessions using JSON Web Tokens.
 * **Dual Two-Factor Authentication (2FA):**
-    * Requires **Email OTP** (via Nodemailer) during registration.
+    * Requires **Email OTP** (via Resend) during registration.
     * Requires an Email OTP step during the login process.
 * **Timing-Attack Prevention:** Uses dummy password hashing checks during login if an email isn't found, preventing malicious actors from enumerating valid email addresses.
 * **Rate Limiting:** Protects all authentication and OTP endpoints (`express-rate-limit`) against brute-force attacks and spam.
@@ -44,7 +44,7 @@ A full-stack MERN application for managing student records, with per-user authen
 | Backend | Node.js + Express.js (Render) |
 | Database | MongoDB Atlas |
 | Auth | JWT + bcryptjs + express-rate-limiter + cors |
-| Email OTP | Nodemailer + Gmail SMTP |
+| Email OTP | Resend API key |
 | Environment & Utilities | dotenv |
 
 ---
@@ -116,34 +116,13 @@ A full-stack MERN application for managing student records, with per-user authen
 
 ---
 
-## Third-Party Service Setup
-
-Before deploying, you need credentials from a free service.
-
-### Gmail App Password (for email OTP)
-
-Gmail App Passwords let your app send email without exposing your account password.
-
-1. Sign into your Google account at https://myaccount.google.com
-2. Go to **Security** and enable **2-Step Verification** if not already on
-3. Go to **Security → App passwords**: https://myaccount.google.com/apppasswords
-4. Click **Create**, give it a name (e.g. "Student Registry"), and click **Create**
-5. Copy the 16-character password shown (no spaces). This is your `GMAIL_APP_PASSWORD`
-6. Your Gmail address is your `GMAIL_USER`
-
-Notes:
-- Use a dedicated Gmail account for sending, not your personal one
-- If you do not see "App passwords", 2-Step Verification is not enabled
-
----
-
 ## Local Development
 
 ### Prerequisites
 
 - Node.js v18+
 - A MongoDB Atlas cluster (free tier works)
-- Gmail App Password (see above)
+- Resend API key (resend.com)
 
 ### 1. Clone the repo
 
@@ -167,9 +146,7 @@ MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/studentapp?retry
 JWT_SECRET=<run: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))">
 PORT=5000
 ALLOWED_ORIGINS=http://localhost:3000
-
-GMAIL_USER=your-email@gmail.com
-GMAIL_APP_PASSWORD=your16charapppassword
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxx
 
 ```bash
 npm start
