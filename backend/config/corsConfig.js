@@ -1,10 +1,8 @@
 const cors = require('cors');
-
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
-
 const corsConfig = cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) callback(null, true);
@@ -12,5 +10,4 @@ const corsConfig = cors({
   },
   credentials: true,
 });
-
 module.exports = corsConfig;
