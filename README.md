@@ -60,6 +60,9 @@ A full-stack MERN application for managing student records, with per-user authen
 │   ├── /middlewares
 │   │   ├── authMiddleware.js
 │   │   └── rateLimiters.js
+│   ├── /controllers
+│   │   ├── authController.js
+│   │   └── studentController.js
 │   ├── /models
 │   │   ├── OTP.js
 │   │   ├── PendingUser.js
@@ -82,14 +85,26 @@ A full-stack MERN application for managing student records, with per-user authen
 │   ├── /src
 │   │   ├── /components
 │   │   │   ├── AuthPage.js
-│   │   │   ├── CountryCodeSelector.js
-│   │   │   ├── OtpInput.js
+│   │   │   ├── Analytics.js
+│   │   │   ├── SearchBar.js
 │   │   │   ├── PhoneInput.js
-│   │   │   └── SearchBar.js
+│   │   │   ├── StudentList.js
+│   │   │   ├── StudentCard.js
+│   │   │   ├── StudentForm.js
+│   │   │   ├── BasicInfoFields.js
+│   │   │   ├── SemesterMarksBuilder.js
+│   │   │   ├── StudentDetail.js
+│   │   │   ├── DetailInfoGrid.js
+│   │   │   └── DetailAcademicRecord.js
 │   │   ├── /utils
 │   │   │   ├── api.js
 │   │   │   ├── constants.js
+│   │   │   ├── helpers.js
 │   │   │   └── validators.js
+|   |   ├── /hooks
+│   │   │   ├── useAuth.js
+│   │   │   ├── useStudents.js
+│   │   │   └── useStudentForm.js
 │   │   ├── App.css
 │   │   ├── App.js
 │   │   └── index.js
