@@ -120,12 +120,21 @@ exports.login = async (req, res) => {
 
     const otp = generateOtp();
     await storeOtp(user.email, 'login', otp);
-    await sendEmailOtp(
-      user.email,
-      otp,
-      'Your sign-in verification code',
-      'sign-in verification'
-    );
+
+    // ↓ try/catch added — email failure now returns error instead of hanging forever
+    try {
+      await sendEmailOtp(
+        user.email,
+        otp,
+        'Your sign-in verification code',
+        'sign-in verification'
+      );
+    } catch (sendErr) {
+      console.error('Login OTP send failure:', sendErr);
+      return res.status(502).json({
+        error: 'Could not send sign-in code. Please try again.',
+      });
+    }
 
     res.json({ pending2fa: true, email: user.email });
   } catch (err) {
@@ -169,7 +178,13 @@ exports.resendOtp = async (req, res) => {
 
     const otp = generateOtp();
     await storeOtp(normEmail, 'email', otp);
-    await sendEmailOtp(normEmail, otp, 'Your email verification code', 'email verification');
+
+    try {
+      await sendEmailOtp(normEmail, otp, 'Your email verification code', 'email verification');
+    } catch (sendErr) {
+      console.error('Resend OTP send failure:', sendErr);
+      return res.status(502).json({ error: 'Could not resend code. Please try again.' });
+    }
 
     res.json({ message: 'A new code has been sent to your email.' });
   } catch (err) {
@@ -188,7 +203,13 @@ exports.loginResend = async (req, res) => {
     if (user) {
       const otp = generateOtp();
       await storeOtp(normEmail, 'login', otp);
-      await sendEmailOtp(normEmail, otp, 'Your sign-in verification code', 'sign-in verification');
+
+      try {
+        await sendEmailOtp(normEmail, otp, 'Your sign-in verification code', 'sign-in verification');
+      } catch (sendErr) {
+        console.error('Login resend send failure:', sendErr);
+        return res.status(502).json({ error: 'Could not resend code. Please try again.' });
+      }
     }
 
     res.json({ message: 'A new sign-in code has been sent to your email.' });
