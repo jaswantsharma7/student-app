@@ -4,7 +4,7 @@ const OTP = require('../models/OTP');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_ADDRESS = process.env.EMAIL_FROM || 'Student Registry <student-registry@resend.dev>';
+const FROM_ADDRESS = process.env.EMAIL_FROM;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
